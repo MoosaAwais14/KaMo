@@ -2,7 +2,7 @@
 
 > Building an operating system from the ground up.
 
-**By Niccholas Klapal & Moosa Awais**
+**By Nicholas Klapal & Moosa Awais**
 
 KaMo is an open-source operating system being built from scratch in **C** and **x86 Assembly**.
 
