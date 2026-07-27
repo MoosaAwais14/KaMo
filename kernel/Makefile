@@ -2,6 +2,8 @@
 
 BUILD := build
 
+LINKER := kernel.ld
+
 TARGET := $(BUILD)/kernel.o
 
 OBJECTS = \
@@ -13,7 +15,7 @@ all: arch generic drivers $(TARGET)
 
 $(TARGET): 
 	mkdir -p $(dir $@)
-	$(LD) -r $(OBJECTS) -o $@
+	$(LD) -r -T $(LINKER) $(OBJECTS) -o $@
 
 arch:
 	$(MAKE) -C arch/$(ARCH)

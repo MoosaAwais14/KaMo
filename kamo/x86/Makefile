@@ -1,30 +1,23 @@
-.PHONY: all clean
+.PHONY: all GRUB2 clean
 
-BUILD := build
-
-SOURCES := \
-	GRUB2/entry.S \
-	GRUB2/main.c
-
-OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
+BUILD := $(CURDIR)/build
+export BUILD
 
 LINKER := kamo.ld
 
 TARGET := $(BUILD)/kamo.o
 
+OBJECTS = \
+	$(wildcard $(BUILD)/*.o)
+
 all: $(TARGET)
 
-$(TARGET): $(OBJECTS)
+$(TARGET): GRUB2
 	mkdir -p $(dir $@)
-	$(LD) -r -T $(LINKER) $^ -o $@
+	$(LD) -r -T $(LINKER) $(OBJECTS) -o $@
 
-$(BUILD)/%.S.o: %.S
-	mkdir -p $(dir $@)
-	$(CC) $(ASFLAGS) -c $< -o $@
-
-$(BUILD)/%.c.o: %.c
-	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+GRUB2:
+	$(MAKE) -C GRUB2
 
 clean:
 	rm -rf $(BUILD)

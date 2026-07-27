@@ -1,4 +1,3 @@
-/* kernel */
 SECTIONS
 {
   .text :
