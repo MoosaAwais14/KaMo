@@ -1,0 +1,25 @@
+/* kamo */
+SECTIONS
+{
+  .text :
+  {
+    KEEP(*(.boot))
+    *(.text*)
+  }
+
+  .rodata :
+  {
+    *(.rodata*)
+  }
+
+  .data :
+  {
+    *(.data*)
+  }
+
+  .bss :
+  {
+    *(.bss*)
+    *(COMMON)
+  }
+}

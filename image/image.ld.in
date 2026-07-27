@@ -1,0 +1,54 @@
+ENTRY(_start)
+
+INCLUDE "@PROJECT_DIR@/kernel/arch/@ARCH@/memory.ld"
+
+SECTIONS
+{
+  . = KAMO_BASE;
+
+  .kamo.text ALIGN(4K) :
+  {
+    *(.kamo.text)
+  }
+
+  .kamo.rodata ALIGN(4K) :
+  {
+    *(.kamo.rodata)
+  }
+
+  .kamo.data ALIGN(4K) :
+  {
+    *(.kamo.data)
+  }
+
+  .kamo.bss ALIGN(4K) (NOLOAD) :
+  {
+    *(.kamo.bss)
+  }
+
+  . = ALIGN(4K);
+  . += KERNEL_VMA;
+
+  .text ALIGN(4K) : AT(ADDR(.text) - KERNEL_VMA)
+  {
+    *(.text*)
+  }
+
+  .rodata ALIGN(4K) : AT(ADDR(.rodata) - KERNEL_VMA)
+  {
+    *(.rodata*)
+  }
+
+  .data ALIGN(4K) : AT(ADDR(.data) - KERNEL_VMA)
+  {
+    *(.data*)
+  }
+
+  .bss ALIGN(4K) (NOLOAD) : AT(ADDR(.bss) - KERNEL_VMA)
+  {
+    *(.bss*)
+    *(COMMON)
+  }
+
+  . = ALIGN(4K);
+}

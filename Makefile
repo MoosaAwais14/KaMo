@@ -5,10 +5,19 @@ PROJECT_DIR := $(CURDIR)
 export PROJECT_DIR
 export ARCH
 export CC
+export LD
+export OBJCOPY
+export OBJDUMP
+export CFLAGS
+export ASFLAGS
+export LDFLAGS
 
-.PHONY: all kamo kernel userspace clean
+.PHONY: all image kamo kernel userspace clean
 
-all: kamo kernel userspace
+all: image userspace
+
+image: kamo kernel
+	$(MAKE) -C image
 
 kamo:
 	$(MAKE) -C kamo
@@ -20,6 +29,7 @@ userspace:
 	$(MAKE) -C userspace
 
 clean:
+	$(MAKE) -C image clean
 	$(MAKE) -C kamo clean
 	$(MAKE) -C kernel clean
 	$(MAKE) -C userspace clean
