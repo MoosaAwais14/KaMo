@@ -3,7 +3,6 @@
 BUILD := build
 
 SOURCES := \
-	GRUB2/header.S \
 	GRUB2/entry.S \
 	GRUB2/main.c
 

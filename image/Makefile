@@ -2,7 +2,7 @@
 
 BUILD := build
 
-TARGET_LD := $(BUILD)/image.ld
+TARGET_LD := $(BUILD)/image.ld.out
 TARGET := $(BUILD)/image.elf
 MAP := $(BUILD)/image.map
 
