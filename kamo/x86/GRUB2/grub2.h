@@ -4,30 +4,30 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define INT32_TO_BYTES(x)        \
-  (uint8_t)((x) & 0xFF),         \
-  (uint8_t)(((x) >> 8) & 0xFF),  \
-  (uint8_t)(((x) >> 16) & 0xFF), \
-  (uint8_t)(((x) >> 24) & 0xFF)
-
-#define INT16_TO_BYTES(x)        \
-  (uint8_t)((x) & 0xFF),         \
-  (uint8_t)(((x) >> 8) & 0xFF)   \
-
 #define __boot __attribute__((section(".boot")))
+
+#include "platform.h"
 
 #include "multiboot2.h"
 
-#define MULTIBOOT2_HEADER(magic, arch, length)  \
-  INT32_TO_BYTES(magic),                        \
-  INT32_TO_BYTES(arch),                         \
-  INT32_TO_BYTES(length),                       \
-  INT32_TO_BYTES(-(magic + arch + length))
+#define GRUB2_MULTIBOOT_HEADER(arch, length)                                    \
+  (struct multiboot_header){                                                    \
+    .magic = (uint32_t)MULTIBOOT2_HEADER_MAGIC,                                 \
+    .architecture = (uint32_t)arch,                                             \
+    .header_length = (uint32_t)length,                                          \
+    .checksum = (uint32_t)(-(uint32_t)(MULTIBOOT2_HEADER_MAGIC + arch + length))\
+  }
 
-#define MULTIBOOT2_HEADER_TAG(type, flags, size, ...) \
-  INT16_TO_BYTES(type),                             \
-  INT16_TO_BYTES(flags),                            \
-  INT32_TO_BYTES(size),                             \
+#define GRUB2_MULTIBOOT_HEADER_TAG(type, flags, size, ...)\
+  INT16_TO_LE_BYTES(type),                                \
+  INT16_TO_LE_BYTES(flags),                               \
+  INT32_TO_LE_BYTES(size),                                \
   __VA_ARGS__
+
+typedef struct grub2_multiboot_header_s 
+{
+  struct multiboot_header header;
+  uint8_t tags_raw[];
+} __attribute__ ((__packed__)) grub2_multiboot_header_t;
 
 #endif

@@ -5,12 +5,9 @@ void grub2_start(uint32_t magic, uint32_t ptr)
   
 }
 
-__boot __attribute__((aligned(8))) const uint8_t multiboot_compliant_header[256] = {
-  MULTIBOOT2_HEADER(
-    MULTIBOOT2_HEADER_MAGIC,
-    0x00000000,
-    sizeof(multiboot_compliant_header)
-  ),
-
-  MULTIBOOT2_HEADER_TAG(0, 0, 8)
+__boot grub2_multiboot_header_t multiboot2_header = {
+  .header = GRUB2_MULTIBOOT_HEADER(0, sizeof(multiboot2_header)),
+  .tags_raw = {
+    GRUB2_MULTIBOOT_HEADER_TAG(0, 0, 8)
+  }
 };
