@@ -1,4 +1,6 @@
-ARCH ?= x86
+ifndef ARCH
+$(error ARCH is required. Usage: make ARCH=<architecture>)
+endif
 
 ifeq ($(ARCH),x86)
 TARGET := i686-elf
@@ -9,15 +11,17 @@ LD := $(TARGET)-ld
 OBJCOPY := $(TARGET)-objcopy
 OBJDUMP := $(TARGET)-objdump
 
-COMMON_FLAGS := \
-	-ffreestanding \
-	-fno-stack-protector \
-	-fno-pie \
+ifeq ($(ARCH),x86)
+COMMON_FLAGS := 				\
+	-ffreestanding 				\
+	-fno-stack-protector 	\
+	-fno-pie							\
 	-m32
+endif
 
 CFLAGS := $(COMMON_FLAGS) -std=gnu11
 ASFLAGS := $(COMMON_FLAGS)
 
-LDFLAGS := \
+LDFLAGS := 	\
 	-nostdlib \
 	-static

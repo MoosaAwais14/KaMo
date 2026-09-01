@@ -1,4 +1,4 @@
-.PHONY: all GRUB2 clean
+.PHONY: all $(KERNEL_BOOTLOADER) clean
 
 BUILD := $(CURDIR)/build
 export BUILD
@@ -12,12 +12,12 @@ OBJECTS = \
 
 all: $(TARGET)
 
-$(TARGET): GRUB2
+$(TARGET): $(KERNEL_BOOTLOADER)
 	mkdir -p $(dir $@)
 	$(LD) -r -T $(LINKER) $(OBJECTS) -o $@
 
-GRUB2:
-	$(MAKE) -C GRUB2
+$(KERNEL_BOOTLOADER):
+	$(MAKE) -C $(KERNEL_BOOTLOADER)
 
 clean:
 	rm -rf $(BUILD)

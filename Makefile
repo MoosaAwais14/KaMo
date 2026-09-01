@@ -12,11 +12,17 @@ export CFLAGS
 export ASFLAGS
 export LDFLAGS
 
+ifndef KERNEL_BOOTLOADER
+$(error KERNEL_BOOTLOADER is required. Usage: make KERNEL_BOOTLOADER=<bootloader_folder_name>)
+endif
+
+export KERNEL_BOOTLOADER
+
 .PHONY: all image kamo kernel userspace clean
 
-all: image userspace
+all: image
 
-image: kamo kernel
+image: userspace kamo kernel
 	$(MAKE) -C image
 
 kamo:

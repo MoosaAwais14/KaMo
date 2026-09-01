@@ -6,11 +6,15 @@ TARGET_LD := $(BUILD)/image.ld.out
 TARGET := $(BUILD)/image.elf
 MAP := $(BUILD)/image.map
 
+PACKAGE_TARGET := $(BUILD)/image.img
+
 KAMO_OBJ := $(PROJECT_DIR)/kamo/$(ARCH)/build/kamo.o
 KAMO_LINK_OBJ := $(BUILD)/kamo.link.o
 KERNEL_OBJ := $(PROJECT_DIR)/kernel/build/kernel.o
 
-all: $(TARGET)
+include $(PROJECT_DIR)/kamo/$(ARCH)/$(KERNEL_BOOTLOADER)/package.mk
+
+all: package
 
 $(TARGET): $(TARGET_LD) $(KAMO_LINK_OBJ) $(KERNEL_OBJ)
 	mkdir -p $(dir $@)
