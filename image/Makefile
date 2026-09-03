@@ -12,9 +12,9 @@ KAMO_OBJ := $(PROJECT_DIR)/kamo/$(ARCH)/build/kamo.o
 KAMO_LINK_OBJ := $(BUILD)/kamo.link.o
 KERNEL_OBJ := $(PROJECT_DIR)/kernel/build/kernel.o
 
-include $(PROJECT_DIR)/kamo/$(ARCH)/$(KERNEL_BOOTLOADER)/package.mk
+include $(PROJECT_DIR)/kamo/$(ARCH)/$(KERNEL_BOOTLOADER)/package_boot.mk
 
-all: package
+all: package_boot
 
 $(TARGET): $(TARGET_LD) $(KAMO_LINK_OBJ) $(KERNEL_OBJ)
 	mkdir -p $(dir $@)
