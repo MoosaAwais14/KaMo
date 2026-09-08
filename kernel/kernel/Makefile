@@ -1,7 +1,22 @@
-.PHONY: build clean
+.PHONY: all clean
 
-build:
-	echo $(ARCH)
+BUILD := build
+
+SOURCES := \
+	kernel_start.c
+
+OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
+
+all: $(OBJECTS)
+
+$(BUILD)/%.S.o: %.S
+	mkdir -p $(dir $@)
+	$(CC) $(ASFLAGS) -c $< -o $@
+
+$(BUILD)/%.c.o: %.c
+	mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
+	rm -rf $(BUILD)
 

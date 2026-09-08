@@ -1,4 +1,4 @@
-void kernel_start(void* args)
+void arch_init(void)
 {
   
 }
