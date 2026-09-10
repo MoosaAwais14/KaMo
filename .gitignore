@@ -5,5 +5,7 @@
 *.bin
 *.iso
 
+compile_commands.json
+
 *.img
 *.map

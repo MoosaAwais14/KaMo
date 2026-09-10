@@ -18,9 +18,9 @@ endif
 
 export KERNEL_BOOTLOADER
 
-.PHONY: all image kamo kernel userspace clean
+.PHONY: all image kamo kernel userspace clean compile_commands
 
-all: image
+all: userspace kamo kernel
 
 image: userspace kamo kernel
 	$(MAKE) -C image
@@ -34,8 +34,14 @@ kernel:
 userspace:
 	$(MAKE) -C userspace
 
+compile_commands:
+	$(MAKE) clean
+	bear -- $(MAKE) ARCH=$(ARCH) KERNEL_BOOTLOADER=$(KERNEL_BOOTLOADER) all
+	$(MAKE) clean
+
 clean:
 	$(MAKE) -C image clean
 	$(MAKE) -C kamo clean
 	$(MAKE) -C kernel clean
 	$(MAKE) -C userspace clean
+

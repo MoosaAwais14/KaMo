@@ -20,7 +20,7 @@ $(PACKAGE_TARGET): $(K_TARGET) $(GRUB_CFG)
 	echo "Creating $(PACKAGE_TARGET)..."; \
 	mkdir -p "$(dir $@)"; \
 	rm -f "$@"; \
-	truncate -s 64M "$@"; \
+	truncate -s "$(IMAGE_SIZE)" "$@"
 	\
 	echo "Creating partition table..."; \
 	sudo parted -s "$@" \

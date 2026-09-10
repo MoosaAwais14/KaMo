@@ -1,5 +1,7 @@
 #include "grub2.h"
 
+#include <asm/cpu.h>
+
 void grub2_start(uint32_t magic, uint32_t ptr)
 {
   

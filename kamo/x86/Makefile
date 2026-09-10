@@ -1,7 +1,6 @@
 .PHONY: all $(KERNEL_BOOTLOADER) clean
 
 BUILD := $(CURDIR)/build
-export BUILD
 
 LINKER := kamo.ld
 
@@ -17,7 +16,7 @@ $(TARGET): $(KERNEL_BOOTLOADER)
 	$(LD) -r -T $(LINKER) $(OBJECTS) -o $@
 
 $(KERNEL_BOOTLOADER):
-	$(MAKE) -C $(KERNEL_BOOTLOADER)
+	$(MAKE) -C $(KERNEL_BOOTLOADER) CFLAGS="$(CFLAGS) -I$(CURDIR)/include" BUILD="$(BUILD)"
 
 clean:
 	rm -rf $(BUILD)
