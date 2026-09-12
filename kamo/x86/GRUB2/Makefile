@@ -1,8 +1,10 @@
 .PHONY: all
 
-SOURCES := 	\
-	entry.S  	\
-	main.c 		\
+SOURCES := 					\
+	entry.S  					\
+	main.c 						\
+	multiboot2_info.c	\
+	uart.c						\
 
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 
