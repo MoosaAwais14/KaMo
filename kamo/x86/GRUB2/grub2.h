@@ -72,6 +72,9 @@ extern grub2_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_i
 
 static inline void putc(char c)
 {
+  if(c == '\n')
+    uart_write_byte('\r');
+
   uart_write_byte(c);
 }
 

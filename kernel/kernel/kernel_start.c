@@ -1,5 +1,6 @@
-int kernel_start(void)
+__attribute__ ((noreturn))
+void kernel_start(void)
 {
-  
-  return 0;
+
+  for(;;);
 }
