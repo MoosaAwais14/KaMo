@@ -18,10 +18,10 @@ $(TARGET):
 	$(LD) -r -T $(LINKER) $(OBJECTS) -o $@
 
 arch:
-	$(MAKE) -C arch/$(ARCH)
+	$(MAKE) -C arch/$(ARCH)	CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include"
 
 generic:
-	$(MAKE) -C kernel
+	$(MAKE) -C kernel	CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include"
 
 drivers:
 	$(MAKE) -C drivers

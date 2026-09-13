@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <attributes.h>
+
 #define PAGE_DIRECTORY_ENTRIES  1024
 
 typedef struct page_directory_entry_ps1_s {
@@ -30,6 +32,6 @@ typedef union {
 typedef struct page_directory_s
 {
   page_directory_entry_t entries[PAGE_DIRECTORY_ENTRIES];
-} page_directory_t __attribute__((aligned(4096)));
+} page_directory_t __aligned(4096);
 
 #endif

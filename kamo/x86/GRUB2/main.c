@@ -1,5 +1,8 @@
 #include "grub2.h"
 
+#include <attributes.h>
+#include <start_kernel.h>
+
 #include <asm/cpu.h>
 #include <mm/paging.h>
 #include <lib/string.h>
@@ -15,9 +18,6 @@ static page_directory_t grub2_page_directory = { 0 };
 
 #define FAIL(msg) \
   fail(__FILE__, __LINE__, msg)
-
-
-extern __attribute__ ((noreturn)) void kernel_start(void);
 
 void grub2_start(uint32_t magic, uint32_t ptr)
 {
@@ -45,7 +45,7 @@ void grub2_start(uint32_t magic, uint32_t ptr)
   puts("UART Shut down\n");
   uart_shutdown();
 
-  kernel_start();
+  start_kernel();
 }
 
 static void fail(const char* file, int line, const char* msg)
