@@ -1,5 +1,5 @@
-#ifndef KAMO_X86_INCLUDE_MM_PAGING_H
-#define KAMO_X86_INCLUDE_MM_PAGING_H
+#ifndef KAMO_X86_INCLUDE_ASM_PAGING_H
+#define KAMO_X86_INCLUDE_ASM_PAGING_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -33,5 +33,17 @@ typedef struct page_directory_s
 {
   page_directory_entry_t entries[PAGE_DIRECTORY_ENTRIES];
 } page_directory_t __aligned(4096);
+
+static __always_inline void x86_cpu_write_cr3(uint32_t cr3)
+{
+  __asm__ volatile("mov %0, %%cr3" ::"r"(cr3));
+}
+
+static __always_inline uint32_t x86_cpu_read_cr3(void)
+{
+  uint32_t val;
+  __asm__ volatile ("mov %%cr3, %0" : "=r"(val));
+  return val;
+}
 
 #endif

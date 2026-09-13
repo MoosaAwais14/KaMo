@@ -27,11 +27,6 @@ static __always_inline void x86_cpu_halt(void)
   __asm__ volatile("hlt");
 }
 
-static __always_inline void x86_cpu_write_cr3(uint32_t cr3)
-{
-  __asm__ volatile("mov %0, %%cr3" ::"r"(cr3));
-}
-
 static __always_inline uint32_t x86_cpu_read_cr0(void)
 {
   uint32_t val;

@@ -4,7 +4,7 @@
 #include <start_kernel.h>
 
 #include <asm/cpu.h>
-#include <mm/paging.h>
+#include <asm/paging.h>
 #include <lib/string.h>
 #include <lib/stdlib.h>
 
