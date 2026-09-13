@@ -9,46 +9,46 @@
 
 static __always_inline void x86_cpu_cli(void)
 {
-  __asm__ volatile("cli");
+  __asm__ volatile("cli" ::: "memory");
 }
 
 static __always_inline void x86_cpu_sti(void)
 {
-  __asm__ volatile("sti");
+  __asm__ volatile("sti" ::: "memory");
 }
 
 static __always_inline void x86_cpu_pause(void)
 {
-  __asm__ volatile("pause");
+  __asm__ volatile("pause" ::: "memory");
 }
 
 static __always_inline void x86_cpu_halt(void)
 {
-  __asm__ volatile("hlt");
+  __asm__ volatile("hlt" ::: "memory");
 }
 
 static __always_inline uint32_t x86_cpu_read_cr0(void)
 {
   uint32_t val;
-  __asm__ volatile ("mov %%cr0, %0" : "=r"(val));
+  __asm__ volatile ("mov %%cr0, %0" : "=r"(val) :: "memory");
   return val;
 }
 
 static __always_inline void x86_cpu_write_cr0(uint32_t cr0)
 {
-  __asm__ volatile("mov %0, %%cr0" ::"r"(cr0));
+  __asm__ volatile("mov %0, %%cr0" ::"r"(cr0) : "memory");
 }
 
 static __always_inline uint32_t x86_cpu_read_cr4(void)
 {
   uint32_t val;
-  __asm__ volatile ("mov %%cr4, %0" : "=r"(val));
+  __asm__ volatile ("mov %%cr4, %0" : "=r"(val) :: "memory");
   return val;
 }
 
 static __always_inline void x86_cpu_write_cr4(uint32_t cr4)
 {
-  __asm__ volatile("mov %0, %%cr4" ::"r"(cr4));
+  __asm__ volatile("mov %0, %%cr4" ::"r"(cr4) : "memory");
 }
 
 static __always_inline void x86_cpu_cpuid(unsigned int* eax, unsigned int* ebx, unsigned int* ecx, unsigned int* edx)

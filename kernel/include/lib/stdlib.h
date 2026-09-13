@@ -3,7 +3,20 @@
 
 #include <stdint.h>
 
-static inline int atoi(const char *s) {
+#include <attributes.h>
+
+static __always_inline int abs(int x)
+{
+    return (x < 0) ? -x : x;
+}
+
+static __always_inline long labs(long x)
+{
+    return (x < 0) ? -x : x;
+}
+
+static __always_inline int atoi(const char *s)
+{
     int sign = 1;
     int result = 0;
 
@@ -25,7 +38,8 @@ static inline int atoi(const char *s) {
     return result * sign;
 }
 
-static inline long atol(const char *s) {
+static __always_inline long atol(const char *s)
+{
     long sign = 1;
     long result = 0;
 
@@ -47,7 +61,8 @@ static inline long atol(const char *s) {
     return result * sign;
 }
 
-static inline char *itoa(int value, char *str, int base) {
+static __always_inline char *itoa(int value, char *str, int base)
+{
     char *ptr = str;
     char *ptr1 = str;
     char tmp;
@@ -95,7 +110,8 @@ static inline char *itoa(int value, char *str, int base) {
     return str;
 }
 
-static inline char *utoa(unsigned int value, char *str, int base) {
+static __always_inline char *utoa(unsigned int value, char *str, int base) 
+{
     char *ptr = str;
     char *ptr1 = str;
     char tmp;

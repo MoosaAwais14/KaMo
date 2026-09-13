@@ -7,17 +7,12 @@
 
 static __always_inline void local_irq_disable(void)
 {
-  __asm__ volatile("cli");
+  __asm__ volatile("cli" ::: "memory");
 }
 
 static __always_inline void local_irq_enable(void)
 {
-  __asm__ volatile("sti");
-}
-
-static __always_inline void local_halt(void)
-{
-  __asm__ volatile("hlt");
+  __asm__ volatile("sti" ::: "memory");
 }
 
 static __always_inline uint32_t local_save_flags(void) {

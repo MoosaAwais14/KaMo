@@ -5,7 +5,12 @@
 
 static __always_inline void cpu_relax(void)
 {
-  __asm__ volatile("pause");
+  __asm__ volatile("pause" ::: "memory");
+}
+
+static __always_inline void local_halt(void)
+{
+  __asm__ volatile("hlt" ::: "memory");
 }
 
 #endif

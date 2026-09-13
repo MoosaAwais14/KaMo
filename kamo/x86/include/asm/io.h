@@ -9,13 +9,13 @@
 static __always_inline uint8_t x86_inb(uint16_t port)
 {
   uint8_t rv;
-  __asm__ volatile("inb %1, %0" : "=a"(rv) : "dN"(port));
+  __asm__ volatile("inb %1, %0" : "=a"(rv) : "dN"(port) : "memory");
   return rv;
 }
 
 static __always_inline void x86_outb(uint16_t port, uint8_t data)
 {
-  __asm__ volatile("outb %1, %0" ::"dN"(port), "a"(data));
+  __asm__ volatile("outb %1, %0" ::"dN"(port), "a"(data) : "memory");
 }
 
 #endif
