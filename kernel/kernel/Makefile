@@ -19,4 +19,3 @@ $(BUILD)/%.c.o: %.c
 
 clean:
 	rm -rf $(BUILD)
-

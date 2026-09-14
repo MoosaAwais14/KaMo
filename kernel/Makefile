@@ -24,7 +24,7 @@ generic:
 	$(MAKE) -C kernel	CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include"
 
 drivers:
-	$(MAKE) -C drivers
+	$(MAKE) -C drivers CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include"
 
 clean:
 	$(MAKE) -C arch/$(ARCH) clean
