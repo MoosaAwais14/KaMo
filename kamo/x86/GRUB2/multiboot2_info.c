@@ -25,7 +25,7 @@ grub2_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_info_t* 
       case MULTIBOOT_TAG_TYPE_CMDLINE:
         {
           struct multiboot_tag_string* cmdline = (void*)tag;
-          
+
           if(strlen(cmdline->string) > BOOT_INFO_CMDLINE_MAX)
             return GRUB2_ERR_CMDLINE_MAXED;
 
@@ -33,7 +33,7 @@ grub2_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_info_t* 
 
           break;
         }
- 
+
       case MULTIBOOT_TAG_TYPE_MMAP:
         {
           struct multiboot_tag_mmap* mmap = (void*)tag;
@@ -78,30 +78,43 @@ grub2_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_info_t* 
           {
             boot_info->framebuffer.type = BOOT_INFO_FRAMEBUFFER_TYPE_TEXT;
 
-            boot_info->framebuffer.gfx.framebuffer_addr = fb->common.framebuffer_addr;
-            boot_info->framebuffer.gfx.width            = fb->common.framebuffer_width;
-            boot_info->framebuffer.gfx.height           = fb->common.framebuffer_height;
-            boot_info->framebuffer.gfx.pitch            = fb->common.framebuffer_pitch;
-            boot_info->framebuffer.gfx.bpp              = fb->common.framebuffer_bpp;
+            boot_info->framebuffer.framebuffer_addr = fb->common.framebuffer_addr;
+            boot_info->framebuffer.width            = fb->common.framebuffer_width;
+            boot_info->framebuffer.height           = fb->common.framebuffer_height;
+            boot_info->framebuffer.pitch            = fb->common.framebuffer_pitch;
+            boot_info->framebuffer.bpp              = fb->common.framebuffer_bpp;
 
-            boot_info->framebuffer.gfx.red_field_pos    = fb->framebuffer_red_field_position;
-            boot_info->framebuffer.gfx.red_mask_size    = fb->framebuffer_red_mask_size;
-            boot_info->framebuffer.gfx.green_field_pos  = fb->framebuffer_green_field_position;
-            boot_info->framebuffer.gfx.green_mask_size  = fb->framebuffer_green_mask_size;
-            boot_info->framebuffer.gfx.blue_field_pos   = fb->framebuffer_blue_field_position;
-            boot_info->framebuffer.gfx.blue_mask_size   = fb->framebuffer_blue_mask_size;
+            boot_info->framebuffer.rgb.red_field_pos    = fb->framebuffer_red_field_position;
+            boot_info->framebuffer.rgb.red_mask_size    = fb->framebuffer_red_mask_size;
+            boot_info->framebuffer.rgb.green_field_pos  = fb->framebuffer_green_field_position;
+            boot_info->framebuffer.rgb.green_mask_size  = fb->framebuffer_green_mask_size;
+            boot_info->framebuffer.rgb.blue_field_pos   = fb->framebuffer_blue_field_position;
+            boot_info->framebuffer.rgb.blue_mask_size   = fb->framebuffer_blue_mask_size;
           }
           else if(fb->common.framebuffer_type == MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT)
           {
             boot_info->framebuffer.type = BOOT_INFO_FRAMEBUFFER_TYPE_GRAPHICS;
 
-            boot_info->framebuffer.text.framebuffer_addr = fb->common.framebuffer_addr;
-            boot_info->framebuffer.text.width  = fb->common.framebuffer_width;
-            boot_info->framebuffer.text.height = fb->common.framebuffer_height;
-            boot_info->framebuffer.text.pitch  = fb->common.framebuffer_pitch;
-            boot_info->framebuffer.text.bpp = sizeof(uint16_t) * 8; 
+            boot_info->framebuffer.framebuffer_addr = fb->common.framebuffer_addr;
+            boot_info->framebuffer.width  = fb->common.framebuffer_width;
+            boot_info->framebuffer.height = fb->common.framebuffer_height;
+            boot_info->framebuffer.pitch  = fb->common.framebuffer_pitch;
+            boot_info->framebuffer.bpp = sizeof(uint16_t) * 8; 
           }
 
+          break;
+        }
+
+      case MULTIBOOT_TAG_TYPE_ACPI_OLD:
+        {
+          struct multiboot_tag_old_acpi* acpi = (void*)tag;
+          boot_info->firmware.acpi_rsdp = (uint64_t)acpi->rsdp;
+          break;
+        }
+      case MULTIBOOT_TAG_TYPE_ACPI_NEW:
+        {
+          struct multiboot_tag_new_acpi* acpi = (void*)tag;
+          boot_info->firmware.acpi_rsdp = (uint64_t)acpi->rsdp;
           break;
         }
     }

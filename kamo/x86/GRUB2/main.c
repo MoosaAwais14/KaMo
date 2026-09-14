@@ -40,11 +40,14 @@ void grub2_start(uint32_t magic, uint32_t ptr)
   enable_paging();
   puts("Enabled paging\n");
   
+  puts("Copying boot_info to kernel\n");
+  memcpy(&kernel_boot_info, &grub2_boot_info, sizeof(boot_info_t));
+
   puts("\nReady to go to kernel\n\n");
 
   puts("UART Shut down\n");
   uart_shutdown();
-
+  
   start_kernel();
 }
 

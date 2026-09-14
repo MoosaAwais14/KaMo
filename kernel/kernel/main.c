@@ -3,11 +3,11 @@
 #include <asm/cpu.h>
 #include <asm/irqflags.h>
 
+boot_info_t kernel_boot_info;
+
 void __noreturn start_kernel(void)
 {
   local_irq_disable();
-
-  
 
   while(1)
   {
