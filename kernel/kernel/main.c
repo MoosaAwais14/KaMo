@@ -10,7 +10,7 @@ void __noreturn start_kernel(void)
 {
   local_irq_disable();
   
-  setup_arch();
+  setup_arch(&kernel_boot_info);
 
   while(1)
   {

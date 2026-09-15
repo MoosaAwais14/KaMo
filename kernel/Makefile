@@ -6,16 +6,13 @@ LINKER := kernel.ld
 
 TARGET := $(BUILD)/kernel.o
 
-OBJECTS = \
-	$(wildcard arch/$(ARCH)/build/*.o) \
-	$(wildcard kernel/build/*.o) \
-	$(wildcard drivers/build/*.o)
-
 all: arch generic drivers $(TARGET)
 
 $(TARGET): 
 	mkdir -p $(dir $@)
-	$(LD) -r -T $(LINKER) $(OBJECTS) -o $@
+	$(LD) -r -T $(LINKER)																															\
+		$(shell find arch/$(ARCH)/build kernel/build drivers/build -type f -name '*.o') \
+		-o $@
 
 arch:
 	$(MAKE) -C arch/$(ARCH)	CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include"

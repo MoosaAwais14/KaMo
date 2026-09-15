@@ -3,7 +3,7 @@
 BUILD := build
 
 SOURCES := \
-	setup.c
+	kernel/setup.c
 
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 
