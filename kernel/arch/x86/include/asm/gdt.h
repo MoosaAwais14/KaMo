@@ -1,9 +1,11 @@
 #ifndef ASM_GDT_H
 #define ASM_GDT_H
 
-#include <stdint.h>
-
 #include <attributes.h>
+
+#ifndef __ASSEMBLER__
+
+#include <stdint.h>
 
 typedef struct gdt_entry_s {
   uint16_t limit_low;
@@ -32,7 +34,7 @@ static inline void gdt_set_gate(gdt_entry_t* entry, uint32_t base, uint32_t limi
   entry->access = access;
 }
 
-static inline void gdt_load(void *gdt_ptr, uint16_t code_sel, uint16_t data_sel) 
+static inline void gdt_load(const void *gdt_ptr, uint16_t code_sel, uint16_t data_sel) 
 {
   __asm__ volatile (
     "lgdt (%0)\n\t"
@@ -55,5 +57,32 @@ static inline void gdt_load(void *gdt_ptr, uint16_t code_sel, uint16_t data_sel)
     : "ax", "memory"
   );
 }
+
+static inline void gdt_reload_segments(uint16_t code_sel, uint16_t data_sel) 
+{
+  __asm__ volatile (
+    "mov %0, %%ax\n\t"
+    "mov %%ax, %%ds\n\t"
+    "mov %%ax, %%es\n\t"
+    "mov %%ax, %%fs\n\t"
+    "mov %%ax, %%gs\n\t"
+    "mov %%ax, %%ss\n\t"
+
+    "push %1\n\t"
+    "push $1f\n\t"
+    "lretl\n\t"
+
+    "1:\n\t"
+
+    :
+    : "r"(data_sel), "r"(code_sel)
+    : "ax", "memory"
+  );
+}
+
+#endif
+
+#define GDT_SELECTOR(index, rpl)  \
+  ((index << 3) | (rpl & 0x3))
 
 #endif

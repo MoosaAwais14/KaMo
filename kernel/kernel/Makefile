@@ -2,8 +2,9 @@
 
 BUILD := build
 
-SOURCES := \
-	main.c
+SOURCES := 	\
+	main.c		\
+	cpu.c			\
 
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 

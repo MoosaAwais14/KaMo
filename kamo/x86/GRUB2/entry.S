@@ -2,7 +2,7 @@
 
   .align 4
 stack_bottom:
-  .skip 1024
+  .skip 8192
 stack_top:
 
   .section .text

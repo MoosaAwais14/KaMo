@@ -18,7 +18,7 @@ $(TARGET): $(KERNEL_BOOTLOADER)
 		-o $@
 
 $(KERNEL_BOOTLOADER):
-	$(MAKE) -C $(KERNEL_BOOTLOADER) CFLAGS="$(CFLAGS) -I$(CURDIR)/include -I$(PROJECT_DIR)/kernel/include" BUILD="$(BUILD)"
+	$(MAKE) -C $(KERNEL_BOOTLOADER) CFLAGS="$(CFLAGS) -I$(CURDIR)/include -I$(PROJECT_DIR)/kernel/include" ASFLAGS="$(ASFLAGS) -I$(CURDIR)/include -I$(PROJECT_DIR)/kernel/include" BUILD="$(BUILD)"
 
 clean:
 	rm -rf $(BUILD)

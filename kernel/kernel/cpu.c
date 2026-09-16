@@ -1,0 +1,36 @@
+#include <cpu.h>
+
+#include <stddef.h>
+
+#include <lib/memory.h>
+
+#include <cpu/cpu.h>
+
+static cpu_t cpus[CPU_MAX] = { 0 };
+
+cpu_t* cpu_current(void)
+{
+  uint32_t id = arch_cpu_current_id();
+  return (id < CPU_MAX) ? &cpus[id] : NULL;
+}
+
+cpu_t* cpu_get(uint32_t id)
+{
+  return (id < CPU_MAX) ? &cpus[id] : NULL;
+}
+
+int cpu_early_init(uint32_t id)
+{
+    if (id >= CPU_MAX)
+        return 1;
+
+    cpu_t *cpu = &cpus[id];
+
+    if (cpu->arch_priv)
+        return 1;
+
+    cpu->id = id;
+    cpu->online = 0;
+
+    return arch_percpu_early_init(cpu);
+}

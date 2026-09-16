@@ -2,8 +2,12 @@
 
 BUILD := build
 
-SOURCES := \
-	kernel/setup.c
+SOURCES := 					\
+	kernel/setup.c		\
+	kernel/cpu/cpu.c	\
+	kernel/cpu/gdt.c	\
+	kernel/cpu/idt.S 	\
+	kernel/cpu/idt.c	\
 
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 

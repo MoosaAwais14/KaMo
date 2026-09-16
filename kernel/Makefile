@@ -15,13 +15,13 @@ $(TARGET):
 		-o $@
 
 arch:
-	$(MAKE) -C arch/$(ARCH)	CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include"
+	$(MAKE) -C arch/$(ARCH)	CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include" ASFLAGS="$(ASFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include"
 
 generic:
-	$(MAKE) -C kernel	CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include"
+	$(MAKE) -C kernel	CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include" ASFLAGS="$(ASFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include"
 
 drivers:
-	$(MAKE) -C drivers CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include"
+	$(MAKE) -C drivers CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include" ASFLAGS="$(ASFLAGS) -I$(PROJECT_DIR)/kernel/include"
 
 clean:
 	$(MAKE) -C arch/$(ARCH) clean
