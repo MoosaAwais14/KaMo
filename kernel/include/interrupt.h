@@ -1,0 +1,40 @@
+#ifndef KERNEL_INCLUDE_INTERRUPT_H
+#define KERNEL_INCLUDE_INTERRUPT_H
+
+#include <stdint.h>
+
+#define INTERRUPT_VECTOR_COUNT 256
+
+typedef enum interrupt_type {
+  INTERRUPT_NONE = 0,
+  INTERRUPT_IRQ,
+  INTERRUPT_TRAP,
+  INTERRUPT_NMI,
+  INTERRUPT_SOFTWARE,
+} interrupt_type_t;
+
+typedef struct interrupt_context_s {
+  uint32_t vector;
+  void* arch;
+} interrupt_context_t;
+
+typedef void (*interrupt_handler_t)(interrupt_context_t *context, void *arg);
+
+typedef struct interrupt_desc_s {
+    uint32_t vector;
+    interrupt_type_t type;
+
+    interrupt_handler_t handler;
+    void* arg;
+} interrupt_desc_t;
+
+extern int interrupt_init(void);
+
+extern int interrupt_set_type(uint32_t vector, interrupt_type_t type);
+
+extern int interrupt_register(uint32_t vector, interrupt_handler_t handler, void* arg);
+extern int interrupt_unregister(uint32_t vector);
+
+extern void interrupt_dispatch(interrupt_context_t* context);
+
+#endif

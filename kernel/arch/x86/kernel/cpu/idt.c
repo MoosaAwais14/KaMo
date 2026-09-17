@@ -4,6 +4,8 @@
 
 #include <cpu/gdt.h>
 
+#include <interrupt.h>
+
 #include <lib/memory.h>
 
 static inline uint8_t idt_default_flags(size_t vector);
@@ -53,7 +55,12 @@ int idt_cpu_set_gate(idt_cpu_t* idt_cpu, uint8_t vector, uint32_t base, uint16_t
 
 void idt_dispatch(idt_frame_t* frame)
 {
-  // Do stuff here...
+  interrupt_context_t context = {
+    .vector = frame->vector,
+    .arch = frame
+  };
+
+  interrupt_dispatch(&context);
 }
 
 static void idt_cpu_init_defaults(idt_cpu_t* idt_cpu)
