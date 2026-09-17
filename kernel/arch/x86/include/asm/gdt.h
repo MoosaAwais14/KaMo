@@ -3,6 +3,9 @@
 
 #include <attributes.h>
 
+#define GDT_SELECTOR(index, rpl)  \
+  ((index << 3) | (rpl & 0x3))
+
 #ifndef __ASSEMBLER__
 
 #include <stdint.h>
@@ -81,8 +84,5 @@ static inline void gdt_reload_segments(uint16_t code_sel, uint16_t data_sel)
 }
 
 #endif
-
-#define GDT_SELECTOR(index, rpl)  \
-  ((index << 3) | (rpl & 0x3))
 
 #endif

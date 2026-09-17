@@ -1,12 +1,12 @@
-.PHONY: all clean
+.PHONY: all clean compile_commands
 
 BUILD := build
 
-SOURCES := 							\
-	main.c								\
-	cpu.c									\
-	interrupt/interrupt.c	\
-	interrupt/irq.c				\
+SOURCES := 		\
+	main.c			\
+	cpu.c				\
+	interrupt.c	\
+	irq.c				\
 
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 
@@ -19,6 +19,9 @@ $(BUILD)/%.S.o: %.S
 $(BUILD)/%.c.o: %.c
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+compile_commands:
+	printf '%s\n' $(COMMON_FLAGS) > compile_flags.txt
 
 clean:
 	rm -rf $(BUILD)

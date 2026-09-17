@@ -1,4 +1,4 @@
-.PHONY: all $(KERNEL_BOOTLOADER) clean
+.PHONY: all $(KERNEL_BOOTLOADER) clean compile_commands
 
 BUILD := $(CURDIR)/build
 
@@ -19,6 +19,9 @@ $(TARGET): $(KERNEL_BOOTLOADER)
 
 $(KERNEL_BOOTLOADER):
 	$(MAKE) -C $(KERNEL_BOOTLOADER) CFLAGS="$(CFLAGS) -I$(CURDIR)/include -I$(PROJECT_DIR)/kernel/include" ASFLAGS="$(ASFLAGS) -I$(CURDIR)/include -I$(PROJECT_DIR)/kernel/include" BUILD="$(BUILD)"
+
+compile_commands:
+		printf '%s\n' "$(COMMON_FLAGS) -I$(CURDIR)/include -I$(PROJECT_DIR)/kernel/include" > compile_flags.txt
 
 clean:
 	rm -rf $(BUILD)

@@ -3,6 +3,12 @@
 
 #include <attributes.h>
 
+#define IDT_IRQ_VECTOR_BASE 0x20
+
+#define IDT_DEFAULT_INTERRUPT_GATE 0x8E
+#define IDT_DEFAULT_TRAP_GATE      0x8F
+#define IDT_USER_TRAP_GATE         0xEF
+
 #ifndef __ASSEMBLER__
 
 #include <stdint.h>
@@ -38,11 +44,5 @@ static inline void idt_load(const void* idt_ptr) {
 }
 
 #endif
-
-#define IDT_IRQ_VECTOR_BASE 0x20
-
-#define IDT_DEFAULT_INTERRUPT_GATE 0x8E
-#define IDT_DEFAULT_TRAP_GATE      0x8F
-#define IDT_USER_TRAP_GATE         0xEF
 
 #endif

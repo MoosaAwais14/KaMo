@@ -16,6 +16,21 @@
 
 #define GDT_ENTRY_COUNT         7
 
+#define GDT_KERNEL_CODE32_SELECTOR  \
+    GDT_SELECTOR(GDT_KERNEL_CODE32_INDEX, 0)
+
+#define GDT_KERNEL_DATA32_SELECTOR  \
+    GDT_SELECTOR(GDT_KERNEL_DATA32_INDEX, 0)
+
+#define GDT_USER_CODE32_SELECTOR  \
+    GDT_SELECTOR(GDT_USER_CODE32_INDEX, 3)
+
+#define GDT_USER_DATA32_SELECTOR  \
+    GDT_SELECTOR(GDT_USER_DATA32_INDEX, 3)
+
+#define GDT_TSS_SELECTOR  \
+    GDT_SELECTOR(GDT_TSS_INDEX, 0)
+
 #ifndef __ASSEMBLER__
 
 typedef struct gdt_cpu_s {
@@ -34,20 +49,5 @@ extern int gdt_cpu_tss_load(gdt_cpu_t* gdt_cpu);
 extern int gdt_cpu_tss_set_kernel_stack(gdt_cpu_t* gdt_cpu, uintptr_t stack);
 
 #endif
-
-#define GDT_KERNEL_CODE32_SELECTOR  \
-    GDT_SELECTOR(GDT_KERNEL_CODE32_INDEX, 0)
-
-#define GDT_KERNEL_DATA32_SELECTOR  \
-    GDT_SELECTOR(GDT_KERNEL_DATA32_INDEX, 0)
-
-#define GDT_USER_CODE32_SELECTOR  \
-    GDT_SELECTOR(GDT_USER_CODE32_INDEX, 3)
-
-#define GDT_USER_DATA32_SELECTOR  \
-    GDT_SELECTOR(GDT_USER_DATA32_INDEX, 3)
-
-#define GDT_TSS_SELECTOR  \
-    GDT_SELECTOR(GDT_TSS_INDEX, 0)
 
 #endif

@@ -8,6 +8,7 @@ export CC
 export LD
 export OBJCOPY
 export OBJDUMP
+export COMMON_FLAGS
 export CFLAGS
 export ASFLAGS
 export LDFLAGS
@@ -38,6 +39,10 @@ compile_commands:
 	$(MAKE) clean
 	bear -- $(MAKE) ARCH=$(ARCH) KERNEL_BOOTLOADER=$(KERNEL_BOOTLOADER) all
 	$(MAKE) clean
+
+	$(MAKE) -C kamo compile_commands
+	$(MAKE) -C kernel compile_commands
+	$(MAKE) -C userspace compile_commands
 
 clean:
 	$(MAKE) -C image clean

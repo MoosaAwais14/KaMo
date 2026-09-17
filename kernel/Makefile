@@ -1,4 +1,4 @@
-.PHONY: all arch generic drivers clean
+.PHONY: all arch generic drivers clean compile_commands
 
 BUILD := build
 
@@ -22,6 +22,11 @@ generic:
 
 drivers:
 	$(MAKE) -C drivers CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include" ASFLAGS="$(ASFLAGS) -I$(PROJECT_DIR)/kernel/include"
+
+compile_commands:
+	$(MAKE) -C arch/$(ARCH)	COMMON_FLAGS="$(COMMON_FLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include" compile_commands
+	$(MAKE) -C arch/$(ARCH)	COMMON_FLAGS="$(COMMON_FLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include" compile_commands
+	$(MAKE) -C arch/$(ARCH)	COMMON_FLAGS="$(COMMON_FLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include" compile_commands
 
 clean:
 	$(MAKE) -C arch/$(ARCH) clean
