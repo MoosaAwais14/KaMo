@@ -16,5 +16,6 @@ extern cpu_t* cpu_current(void);
 extern cpu_t* cpu_get(uint32_t id);
 
 extern int cpu_early_init(uint32_t id);
+extern int cpu_init(uint32_t id);
 
 #endif

@@ -34,3 +34,21 @@ int cpu_early_init(uint32_t id)
 
     return arch_percpu_early_init(cpu);
 }
+
+int cpu_init(uint32_t id)
+{
+  if (id >= CPU_MAX)
+    return 1;
+
+  cpu_t *cpu = &cpus[id];
+
+  if(!cpu->arch_priv || cpu->id != id)
+    return 2;
+
+  if(cpu->online)
+    return 3;
+  
+  cpu->online = 1;
+
+  return arch_percpu_init(cpu);
+}

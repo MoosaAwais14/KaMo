@@ -15,8 +15,7 @@ int interrupt_init(void)
 
     desc->vector = vector;
     desc->type = INTERRUPT_NONE;
-    desc->handler = NULL;
-    desc->arg = NULL;
+    desc->irq = 0;
   }
 
   return 0;
@@ -32,33 +31,28 @@ int interrupt_set_type(uint32_t vector, interrupt_type_t type)
   return 0;
 }
 
-int interrupt_register(uint32_t vector, interrupt_handler_t handler, void* arg)
+int interrupt_set_irq(uint32_t vector, uint32_t irq)
 {
   if(vector >= INTERRUPT_VECTOR_COUNT)
     return -1;
 
-  interrupt_desc_t* desc = &interrupt_descs[vector]; 
-
-  desc->handler = handler;
-  desc->arg = arg;
-
-  return 0;
-}
-
-int interrupt_unregister(uint32_t vector)
-{
-  if(vector >= INTERRUPT_VECTOR_COUNT)
-    return -1;
-
-  interrupt_desc_t* desc = &interrupt_descs[vector]; 
-
-  desc->handler = NULL;
-  desc->arg = NULL;
+  interrupt_descs[vector].type = INTERRUPT_IRQ;
+  interrupt_descs[vector].irq = irq;
 
   return 0;
 }
 
 void interrupt_dispatch(interrupt_context_t* context)
 {
-  
+  interrupt_desc_t* desc = &interrupt_descs[context->vector]; 
+
+  switch (desc->type) {
+    case INTERRUPT_IRQ:
+      irq_dispatch(desc->irq);
+      break;
+
+    default:
+
+      break;
+  }
 }

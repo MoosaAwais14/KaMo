@@ -9,7 +9,7 @@ static irq_desc_t irq_descs[IRQ_MAX] = { 0 };
 int irq_init(void)
 {
   memset(&irq_descs, 0, sizeof(irq_descs));
-  
+
   for (uint32_t irq = 0; irq < IRQ_MAX; irq++) {
     irq_desc_t* desc = &irq_descs[irq];
 
@@ -19,7 +19,7 @@ int irq_init(void)
     desc->flags = IRQ_TRIGGER_DEFAULT | IRQ_POLARITY_DEFAULT;
     desc->enabled = 0;
   }
-  
+
   return arch_irq_init();
 }
 
@@ -58,7 +58,7 @@ int irq_set_flags(uint32_t irq, irq_flags_t flags)
   return 0;
 }
 
-int irq_register(uint32_t irq, irq_handler_t handler, void* arg)
+int irq_register(uint32_t irq, irq_handler_t handler)
 {
   if(irq >= IRQ_MAX)
     return -1;
@@ -66,7 +66,6 @@ int irq_register(uint32_t irq, irq_handler_t handler, void* arg)
   irq_desc_t* desc = &irq_descs[irq];
 
   desc->handler = handler;
-  desc->arg = arg;
 
   return 0;
 }
@@ -79,6 +78,32 @@ int irq_unregister(uint32_t irq)
   irq_desc_t* desc = &irq_descs[irq];
 
   desc->handler = NULL;
+
+  return 0;
+}
+
+int irq_register_action(uint32_t irq, irq_action_t action, void* arg)
+{
+  if(irq >= IRQ_MAX)
+    return -1;
+
+  irq_desc_t* desc = &irq_descs[irq];
+
+  desc->action = action;
+  desc->arg = arg;
+
+  return 0;
+
+}
+
+int irq_unregister_action(uint32_t irq)
+{
+  if(irq >= IRQ_MAX)
+    return -1;
+
+  irq_desc_t* desc = &irq_descs[irq];
+
+  desc->action = NULL;
   desc->arg = NULL;
 
   return 0;
@@ -127,7 +152,7 @@ void irq_dispatch(uint32_t irq)
 
   irq_desc_t* desc = &irq_descs[irq];
   if(desc->handler)
-    desc->handler(irq, desc->arg);
+    desc->handler(desc);
 }
 
 uint32_t irq_get_vector(uint32_t irq)

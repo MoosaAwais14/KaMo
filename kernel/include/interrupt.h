@@ -18,22 +18,16 @@ typedef struct interrupt_context_s {
   void* arch;
 } interrupt_context_t;
 
-typedef void (*interrupt_handler_t)(interrupt_context_t *context, void *arg);
-
 typedef struct interrupt_desc_s {
     uint32_t vector;
     interrupt_type_t type;
-
-    interrupt_handler_t handler;
-    void* arg;
+    uint32_t irq;
 } interrupt_desc_t;
 
 extern int interrupt_init(void);
 
 extern int interrupt_set_type(uint32_t vector, interrupt_type_t type);
-
-extern int interrupt_register(uint32_t vector, interrupt_handler_t handler, void* arg);
-extern int interrupt_unregister(uint32_t vector);
+extern int interrupt_set_irq(uint32_t vector, uint32_t irq);
 
 extern void interrupt_dispatch(interrupt_context_t* context);
 
