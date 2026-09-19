@@ -1,6 +1,8 @@
 #ifndef ASM_CPU_H
 #define ASM_CPU_H
 
+#include <stdint.h>
+
 #include <attributes.h>
 
 static __always_inline void cpu_relax(void)

@@ -37,4 +37,11 @@ static __always_inline void local_restore_flags(uint32_t flags) {
   );
 }
 
+static __always_inline uint32_t local_irq_save(void)
+{
+  uint32_t flags = local_save_flags();
+  local_irq_disable();
+  return flags;
+}
+
 #endif

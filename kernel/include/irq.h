@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <sync/spinlock.h>
+
 #define IRQ_MAX 256
 
 #define IRQ_VECTOR_INVALID ((uint32_t)-1)
@@ -39,6 +41,8 @@ typedef void (*irq_action_t)(uint32_t irq, void *arg);
 typedef struct irq_desc_s {
   uint32_t irq;
   uint32_t vector;
+
+  raw_spinlock_t rlock;
 
   const irq_chip_t* chip;
   irq_flags_t flags;

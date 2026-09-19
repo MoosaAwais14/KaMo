@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <sync/spinlock.h>
+
 #define INTERRUPT_VECTOR_COUNT 256
 
 typedef enum interrupt_type {
@@ -22,6 +24,8 @@ typedef struct interrupt_desc_s {
     uint32_t vector;
     interrupt_type_t type;
     uint32_t irq;
+
+    raw_spinlock_t rlock;
 } interrupt_desc_t;
 
 extern int interrupt_init(void);

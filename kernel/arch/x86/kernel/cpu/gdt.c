@@ -9,9 +9,9 @@ int gdt_cpu_init(gdt_cpu_t* gdt_cpu)
 
   gdt_cpu->ptr.base = (uint32_t)gdt_cpu->entries;
   gdt_cpu->ptr.limit = sizeof(gdt_cpu->entries) - 1;
-
-  gdt_set_gate(&gdt_cpu->entries[GDT_NULL_INDEX], 0x00000000, 0x00000000, 0x00, 0x00);
   
+  gdt_set_gate(&gdt_cpu->entries[GDT_NULL_INDEX], 0x00000000, 0x00000000, 0x00, 0x00);
+
   gdt_set_gate(&gdt_cpu->entries[GDT_KERNEL_CODE32_INDEX], 0x00000000, 0xFFFFFFFF, 0x9A, 0xCF);
   gdt_set_gate(&gdt_cpu->entries[GDT_KERNEL_DATA32_INDEX], 0x00000000, 0xFFFFFFFF, 0x92, 0xCF);
 
@@ -60,7 +60,7 @@ int gdt_cpu_tss_load(gdt_cpu_t* gdt_cpu)
 {
   if(!gdt_cpu)
     return - 1;
- 
+
   if(gdt_cpu->tss_entry.ss0 == 0 || gdt_cpu->tss_entry.iomap_base == 0)
     return 1;
 

@@ -12,9 +12,10 @@ int interrupt_init(void)
   
   for (uint32_t vector = 0; vector < INTERRUPT_VECTOR_COUNT; vector++) {
     interrupt_desc_t* desc = &interrupt_descs[vector]; 
-
+  
     desc->vector = vector;
     desc->type = INTERRUPT_NONE;
+    desc->rlock = RAW_SPINLOCK_UNLOCKED;
     desc->irq = 0;
   }
 
@@ -26,7 +27,11 @@ int interrupt_set_type(uint32_t vector, interrupt_type_t type)
   if(vector >= INTERRUPT_VECTOR_COUNT)
     return -1;
 
-  interrupt_descs[vector].type = type;
+  interrupt_desc_t* desc = &interrupt_descs[vector]; 
+
+  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  desc->type = type;
+  raw_spin_unlock_irqrestore(&desc->rlock, flags);
 
   return 0;
 }
@@ -36,8 +41,12 @@ int interrupt_set_irq(uint32_t vector, uint32_t irq)
   if(vector >= INTERRUPT_VECTOR_COUNT)
     return -1;
 
-  interrupt_descs[vector].type = INTERRUPT_IRQ;
-  interrupt_descs[vector].irq = irq;
+  interrupt_desc_t* desc = &interrupt_descs[vector]; 
+
+  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  desc->type = INTERRUPT_IRQ;
+  desc->irq = irq;
+  raw_spin_unlock_irqrestore(&desc->rlock, flags);
 
   return 0;
 }
@@ -46,9 +55,14 @@ void interrupt_dispatch(interrupt_context_t* context)
 {
   interrupt_desc_t* desc = &interrupt_descs[context->vector]; 
 
-  switch (desc->type) {
+  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  interrupt_type_t type = desc->type;
+  uint32_t irq = desc->irq;
+  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+
+  switch (type) {
     case INTERRUPT_IRQ:
-      irq_dispatch(desc->irq);
+      irq_dispatch(irq);
       break;
 
     default:

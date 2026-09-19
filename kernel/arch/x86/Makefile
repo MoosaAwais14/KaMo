@@ -11,6 +11,7 @@ SOURCES := 										\
 	kernel/interrupt/irq.c			\
 	kernel/interrupt/irqchip.c	\
 	kernel/i8259.c							\
+	kernel/spinlock.c			\
 
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 
