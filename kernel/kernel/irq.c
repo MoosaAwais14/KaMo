@@ -8,7 +8,7 @@ static irq_desc_t irq_descs[IRQ_MAX] = { 0 };
 
 int irq_init(void)
 {
-  memset(&irq_descs, 0, sizeof(irq_descs));
+  memset(irq_descs, 0, sizeof(irq_descs));
 
   for (uint32_t irq = 0; irq < IRQ_MAX; irq++) {
     irq_desc_t* desc = &irq_descs[irq];

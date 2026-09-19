@@ -27,18 +27,18 @@ extern int cpu_init(uint32_t id);
 
 static inline void preempt_disable(void)
 {
-    cpu_t* cpu = cpu_current();
-    if (cpu) {
-        cpu->preempt_count++;
-    }
+  cpu_t* cpu = cpu_current();
+  if (cpu) {
+    cpu->preempt_count++;
+  }
 }
 
 static inline void preempt_enable(void)
 {
-    cpu_t* cpu = cpu_current();
-    if (cpu) {
-        cpu->preempt_count--;
-    }
+  cpu_t* cpu = cpu_current();
+  if (cpu) {
+    cpu->preempt_count--;
+  }
 }
 
 #endif

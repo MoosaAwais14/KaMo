@@ -60,11 +60,7 @@ void arch_cpu_set_current_id_provider(arch_cpu_current_id_fn_t provider)
 
 uint32_t arch_cpu_current_id(void)
 {   
-  unsigned long flags = raw_spin_lock_irqsave(&provider_lock);
-  arch_cpu_current_id_fn_t fn = current_id_provider;
-  raw_spin_unlock_irqrestore(&provider_lock, flags);
-
-  return fn();
+  return current_id_provider();
 }
 
 void arch_cpu_set_cpu_count_provider(arch_cpu_cpu_count_fn_t provider)
@@ -76,12 +72,9 @@ void arch_cpu_set_cpu_count_provider(arch_cpu_cpu_count_fn_t provider)
 
 uint32_t arch_cpu_cpu_count(void)
 {
-  unsigned long flags = raw_spin_lock_irqsave(&provider_lock);
-  arch_cpu_cpu_count_fn_t fn = cpu_count_provider;
-  raw_spin_unlock_irqrestore(&provider_lock, flags);
-
-  return fn();
+  return cpu_count_provider();
 }
+
 static uint32_t arch_cpu_id_default(void)
 {
   return 0;

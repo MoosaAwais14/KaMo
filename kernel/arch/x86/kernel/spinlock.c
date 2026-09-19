@@ -38,6 +38,7 @@ void raw_spin_unlock(raw_spinlock_t* lock)
 unsigned long raw_spin_lock_irqsave(raw_spinlock_t* lock)
 {
   unsigned long flags = local_irq_save();
+  preempt_enable();
   raw_spin_lock(lock);
   return flags;
 }
@@ -46,4 +47,5 @@ void raw_spin_unlock_irqrestore(raw_spinlock_t* lock, unsigned long flags)
 {
   raw_spin_unlock(lock);
   local_restore_flags(flags);
+  preempt_disable();
 }
