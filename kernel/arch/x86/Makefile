@@ -1,6 +1,4 @@
-.PHONY: all clean compile_commands
-
-BUILD := build
+.PHONY: all compile_commands
 
 SOURCES := 					\
 	kernel/setup.c		\
@@ -11,7 +9,7 @@ SOURCES := 					\
 	kernel/irq.c			\
 	kernel/irqchip.c	\
 	kernel/i8259.c		\
-	kernel/spinlock.c	\
+	sync/spinlock.c		\
 
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 
@@ -27,6 +25,3 @@ $(BUILD)/%.c.o: %.c
 
 compile_commands:
 	printf '%s\n' $(COMMON_FLAGS) > compile_flags.txt
-
-clean:
-	rm -rf $(BUILD)

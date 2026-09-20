@@ -1,35 +1,48 @@
 .PHONY: all arch generic drivers clean compile_commands
 
-BUILD := build
+BUILD := $(CURDIR)/build
 
 LINKER := kernel.ld
 
 TARGET := $(BUILD)/kernel.o
 
-all: arch generic drivers $(TARGET)
+INCLUDE_FLAGS :=																\
+	-I$(PROJECT_DIR)/kernel/include 							\
+	-I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include
+
+COMMON_FLAGS := 		\
+	$(COMMON_FLAGS) 	\
+	$(INCLUDE_FLAGS)
+
+CFLAGS := 					\
+	$(CFLAGS) 				\
+	$(INCLUDE_FLAGS)
+
+ASFLAGS :=					\
+	$(ASFLAGS) 				\
+	$(INCLUDE_FLAGS)
+
+OBJECTS := 																		\
+	$(shell find $(BUILD) -type f -name '*.o')
+
+all: arch generic $(TARGET)
 
 $(TARGET): 
 	mkdir -p $(dir $@)
-	$(LD) -r -T $(LINKER)																															\
-		$(shell find arch/$(ARCH)/build kernel/build drivers/build -type f -name '*.o') \
+	$(LD) -r -T $(LINKER) 												\
+		$(shell find $(BUILD) -type f -name '*.o')	\
 		-o $@
 
 arch:
-	$(MAKE) -C arch/$(ARCH)	CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include" ASFLAGS="$(ASFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include"
+	$(MAKE) -C arch/$(ARCH) CFLAGS="$(CFLAGS)" ASFLAGS="$(ASFLAGS)" BUILD="$(BUILD)"
 
 generic:
-	$(MAKE) -C kernel	CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include" ASFLAGS="$(ASFLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include"
-
-drivers:
-	$(MAKE) -C drivers CFLAGS="$(CFLAGS) -I$(PROJECT_DIR)/kernel/include" ASFLAGS="$(ASFLAGS) -I$(PROJECT_DIR)/kernel/include"
+	$(MAKE) -C kernel	CFLAGS="$(CFLAGS)" ASFLAGS="$(ASFLAGS)" BUILD="$(BUILD)"
+	$(MAKE) -C mm	CFLAGS="$(CFLAGS)" ASFLAGS="$(ASFLAGS)" BUILD="$(BUILD)"
+	$(MAKE) -C drivers CFLAGS="$(CFLAGS)" ASFLAGS="$(ASFLAGS)" BUILD="$(BUILD)"
 
 compile_commands:
-	$(MAKE) -C arch/$(ARCH)	COMMON_FLAGS="$(COMMON_FLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include" compile_commands
-	$(MAKE) -C arch/$(ARCH)	COMMON_FLAGS="$(COMMON_FLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include" compile_commands
-	$(MAKE) -C arch/$(ARCH)	COMMON_FLAGS="$(COMMON_FLAGS) -I$(PROJECT_DIR)/kernel/include -I$(PROJECT_DIR)/kernel/arch/$(ARCH)/include" compile_commands
+	printf '%s\n' $(COMMON_FLAGS) > compile_flags.txt
 
 clean:
-	$(MAKE) -C arch/$(ARCH) clean
-	$(MAKE) -C kernel clean
-	$(MAKE) -C drivers clean
 	rm -rf $(BUILD)

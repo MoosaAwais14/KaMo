@@ -1,12 +1,15 @@
 .PHONY: all arch clean compiled_commands
 
+BUILD := $(CURDIR)/build
+
 all: arch 
 
 arch:
-	$(MAKE) -C $(ARCH)
+	$(MAKE) -C $(ARCH) BUILD="$(BUILD)"
 
 compile_commands:
-	$(MAKE) -C $(ARCH) compile_commands
+	$(MAKE) -C $(ARCH) BUILD="$(BUILD)" compile_commands
 
 clean:
-	$(MAKE) -C $(ARCH) clean
+	rm -rf $(BUILD)
+

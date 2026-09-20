@@ -1,10 +1,6 @@
 .PHONY: all
 
 SOURCES := 		\
-	main.c			\
-	cpu.c				\
-	interrupt.c	\
-	irq.c				\
 
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 

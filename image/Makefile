@@ -7,7 +7,7 @@ K_TARGET_LD := $(BUILD)/kimage.ld.out
 K_TARGET := $(BUILD)/kimage.elf
 K_MAP := $(BUILD)/kimage.map
 
-KAMO_OBJ := $(PROJECT_DIR)/kamo/$(ARCH)/build/kamo.o
+KAMO_OBJ := $(PROJECT_DIR)/kamo/build/kamo.o
 KAMO_LINK_OBJ := $(BUILD)/kamo.link.o
 KERNEL_OBJ := $(PROJECT_DIR)/kernel/build/kernel.o
 

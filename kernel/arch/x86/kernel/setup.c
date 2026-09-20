@@ -9,7 +9,7 @@ void setup_arch(void)
   cpu_early_init(0);
   
   interrupt_init();
-  
+
   // Do some stuff here..
 
   cpu_init(0);
