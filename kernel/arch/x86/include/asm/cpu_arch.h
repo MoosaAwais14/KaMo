@@ -1,10 +1,10 @@
-#ifndef CPU_CPU_H
-#define CPU_CPU_H
+#ifndef ASM_CPU_ARCH_H
+#define ASM_CPU_ARCH_H
 
-#include <cpu.h>
+#include <kernel/cpu.h>
 
-#include <cpu/gdt.h>
-#include <cpu/idt.h>
+#include <asm/gdt_arch.h>
+#include <asm/idt_arch.h>
 
 typedef struct arch_cpu_s {
   gdt_cpu_t gdt;

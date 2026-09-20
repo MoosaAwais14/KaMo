@@ -1,5 +1,5 @@
-#ifndef KAMO_X86_INCLUDE_LIB_MEMORY_H
-#define KAMO_X86_INCLUDE_LIB_MEMORY_H
+#ifndef LIB_MEMORY_H
+#define LIB_MEMORY_H
 
 #include <stdint.h>
 #include <stddef.h>

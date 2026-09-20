@@ -1,4 +1,4 @@
-#include <cpu/cpu.h>
+#include <asm/cpu_arch.h>
 
 #include <sync/spinlock.h>
 #include <lib/memory.h>

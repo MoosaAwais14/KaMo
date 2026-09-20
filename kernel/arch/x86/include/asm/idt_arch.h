@@ -1,5 +1,5 @@
-#ifndef CPU_IDT_H
-#define CPU_IDT_H
+#ifndef ASM_IDT_ARCH_H
+#define ASM_IDT_ARCH_H
 
 #include <asm/idt.h>
 

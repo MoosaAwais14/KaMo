@@ -2,16 +2,16 @@
 
 BUILD := build
 
-SOURCES := 										\
-	kernel/setup.c							\
-	kernel/cpu/cpu.c						\
-	kernel/cpu/gdt.c						\
-	kernel/cpu/idt.S 						\
-	kernel/cpu/idt.c						\
-	kernel/interrupt/irq.c			\
-	kernel/interrupt/irqchip.c	\
-	kernel/i8259.c							\
-	kernel/spinlock.c			\
+SOURCES := 					\
+	kernel/setup.c		\
+	kernel/cpu.c			\
+	kernel/gdt.c			\
+	kernel/idt.S 			\
+	kernel/idt.c			\
+	kernel/irq.c			\
+	kernel/irqchip.c	\
+	kernel/i8259.c		\
+	kernel/spinlock.c	\
 
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 

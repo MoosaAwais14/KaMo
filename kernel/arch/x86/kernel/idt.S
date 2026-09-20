@@ -1,4 +1,4 @@
-#include <cpu/gdt.h>
+#include <asm/gdt_arch.h>
 
   .section .text
 

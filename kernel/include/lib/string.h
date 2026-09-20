@@ -1,5 +1,5 @@
-#ifndef KAMO_X86_INCLUDE_LIB_STRING_H
-#define KAMO_X86_INCLUDE_LIB_STRING_H
+#ifndef LIB_STRING_H
+#define LIB_STRING_H
 
 #include "memory.h"
 

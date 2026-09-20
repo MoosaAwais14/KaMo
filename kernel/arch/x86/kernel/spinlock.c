@@ -2,7 +2,7 @@
 
 #include <asm/cpu.h>
 #include <asm/irqflags.h>
-#include <cpu.h>
+#include <kernel/cpu.h>
 
 void raw_spin_lock(raw_spinlock_t* lock)
 {

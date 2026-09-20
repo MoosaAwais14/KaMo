@@ -1,5 +1,5 @@
-#ifndef KERNEL_INCLUDE_ATTRIBUTES_H
-#define KERNEL_INCLUDE_ATTRIBUTES_H
+#ifndef ATTRIBUTES_H
+#define ATTRIBUTES_H
 
 #define __always_inline   inline __attribute__((__always_inline__))
 

@@ -27,7 +27,7 @@
 
 #define PIC_EOI 0x20
 
-#include <irq.h>
+#include <kernel/irq.h>
 
 extern const irq_chip_t legacy_pic;
 

@@ -1,10 +1,10 @@
-#include <cpu.h>
+#include <kernel/cpu.h>
 
 #include <stddef.h>
 
 #include <lib/memory.h>
 
-#include <cpu/cpu.h>
+#include <asm/cpu_arch.h>
 
 static cpu_t cpus[CPU_MAX] = { 0 };
 

@@ -1,4 +1,4 @@
-#include <interrupt/irqchip.h>
+#include <asm/irqchip.h>
 
 void irqchip_handle(irq_desc_t* desc)
 {

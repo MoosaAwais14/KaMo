@@ -60,7 +60,7 @@ extern grub2_err_t uart_write_byte(int8_t data);
   *
 */
 
-#include <boot_info.h>
+#include <kernel/boot_info.h>
 
 extern grub2_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_info_t* boot_info);
 

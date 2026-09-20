@@ -1,10 +1,10 @@
-#include <cpu/idt.h>
+#include <asm/idt_arch.h>
 
 #include <stddef.h>
 
-#include <cpu/gdt.h>
+#include <asm/gdt_arch.h>
 
-#include <interrupt.h>
+#include <kernel/interrupt.h>
 
 #include <lib/memory.h>
 

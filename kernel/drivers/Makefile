@@ -3,7 +3,7 @@
 BUILD := build
 
 SOURCES := \
-	video/console/console.c
+	
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 
 all: $(OBJECTS)

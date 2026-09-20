@@ -1,4 +1,4 @@
-#include <start_kernel.h>
+#include <kernel/start_kernel.h>
 
 #include <asm/cpu.h>
 #include <asm/irqflags.h>
@@ -10,9 +10,7 @@ void __noreturn start_kernel(void)
 {
   local_irq_disable();
 
-  setup_arch(&kernel_boot_info);
-
-  
+  setup_arch();
 
   while(1)
   {

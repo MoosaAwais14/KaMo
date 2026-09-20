@@ -1,5 +1,5 @@
-#ifndef KERNEL_INCLUDE_INTERRUPT_H
-#define KERNEL_INCLUDE_INTERRUPT_H
+#ifndef KERNEL_INTERRUPT_H
+#define KERNEL_INTERRUPT_H
 
 #include <stdint.h>
 

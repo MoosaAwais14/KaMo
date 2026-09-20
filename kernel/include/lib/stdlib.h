@@ -1,5 +1,5 @@
-#ifndef KAMO_X86_INCLUDE_LIB_STDLIB_H
-#define KAMO_X86_INCLUDE_LIB_STDLIB_H
+#ifndef LIB_STDLIB_H
+#define LIB_STDLIB_H
 
 #include <stdint.h>
 

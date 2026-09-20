@@ -1,6 +1,6 @@
-#include <irq.h>
+#include <kernel/irq.h>
 
-#include <interrupt/irq.h>
+#include <asm/irq.h>
 
 #include <lib/memory.h>
 

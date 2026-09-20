@@ -1,5 +1,5 @@
-#ifndef CPU_GDT_H
-#define CPU_GDT_H
+#ifndef ASM_GDT_ARCH_H
+#define ASM_GDT_ARCH_H
 
 #include <asm/gdt.h>
 

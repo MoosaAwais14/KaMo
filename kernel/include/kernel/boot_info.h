@@ -1,5 +1,5 @@
-#ifndef KERNEL_INCLUDE_BOOT_INFO_H
-#define KERNEL_INCLUDE_BOOT_INFO_H
+#ifndef KERNEL_BOOT_INFO_H
+#define KERNEL_BOOT_INFO_H
 
 #include <stdint.h>
 #include <stddef.h>

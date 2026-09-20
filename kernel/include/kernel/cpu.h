@@ -1,5 +1,5 @@
-#ifndef KERNEL_INCLUDE_CPU_H
-#define KERNEL_INCLUDE_CPU_H
+#ifndef KERNEL_CPU_H
+#define KERNEL_CPU_H
 
 #include <stdint.h>
 #include <stddef.h>

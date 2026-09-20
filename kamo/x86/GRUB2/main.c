@@ -1,7 +1,7 @@
 #include "grub2.h"
 
 #include <attributes.h>
-#include <start_kernel.h>
+#include <kernel/start_kernel.h>
 
 #include <asm/cpu.h>
 #include <asm/paging.h>
@@ -29,6 +29,7 @@ void grub2_start(uint32_t magic, uint32_t ptr)
     FAIL("multiboot2_to_boot_info");
 
   err = uart_init(0x3F8, 9600);
+  puts("\nBooted to kamo/x86/GRUB2\n\n");
   puts("UART Enabled (io:0x3F8 baud:9600)\n");
 
   if((err = check_cpu_support()) != GRUB2_OK)
@@ -45,7 +46,7 @@ void grub2_start(uint32_t magic, uint32_t ptr)
 
   puts("\nReady to go to kernel\n\n");
 
-  puts("UART Shut down\n");
+  puts("UART Shut down\n\n");
   uart_shutdown();
   
   start_kernel();
@@ -54,7 +55,7 @@ void grub2_start(uint32_t magic, uint32_t ptr)
 static void fail(const char* file, int line, const char* msg)
 {
   static char buff[64];
-  puts("\nGRUB2 Failed\n\nFile:");
+  puts("\nFailed\n\nFile:");
   puts(file);
   puts("\nLine:");
   puts(itoa(line, buff, 10));

@@ -1,5 +1,5 @@
-#ifndef KERNEL_INCLUDE_INITCALL_H
-#define KERNEL_INCLUDE_INITCALL_H
+#ifndef KERNEL_INITCALL_H
+#define KERNEL_INITCALL_H
 
 typedef struct initcall_s {
   int level;
