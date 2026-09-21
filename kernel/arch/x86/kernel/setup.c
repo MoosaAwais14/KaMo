@@ -12,6 +12,7 @@ void setup_arch(void)
   
   interrupt_init();
   {
+    // Add interrupt vectors
     arch_exception_early_init();
   }
 
@@ -20,4 +21,5 @@ void setup_arch(void)
   cpu_init(0);
 
   irq_init();
+  // arch_exception_init(); // Update "early" exception vectors with proper handling
 }
