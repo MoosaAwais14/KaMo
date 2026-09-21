@@ -39,6 +39,7 @@ typedef struct idt_cpu_s {
 typedef void (*idt_interrupt_dispatch_fn_t)(void);
 
 extern int idt_cpu_init(idt_cpu_t* idt_cpu);
+extern void idt_cpu_init_defaults(idt_cpu_t* idt_cpu);
 extern int idt_cpu_load(idt_cpu_t* idt_cpu);
 
 extern int idt_cpu_set_gate(idt_cpu_t* idt_cpu, uint8_t vector, uint32_t base, uint16_t selector, uint8_t flags);

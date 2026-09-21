@@ -10,7 +10,7 @@
 typedef enum interrupt_type {
   INTERRUPT_NONE = 0,
   INTERRUPT_IRQ,
-  INTERRUPT_TRAP,
+  INTERRUPT_EXCEPTION,
   INTERRUPT_NMI,
   INTERRUPT_SOFTWARE,
 } interrupt_type_t;

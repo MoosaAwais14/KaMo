@@ -1,15 +1,16 @@
 .PHONY: all compile_commands
 
-SOURCES := 					\
-	kernel/setup.c		\
-	kernel/cpu.c			\
-	kernel/gdt.c			\
-	kernel/idt.S 			\
-	kernel/idt.c			\
-	kernel/irq.c			\
-	kernel/irqchip.c	\
-	kernel/i8259.c		\
-	sync/spinlock.c		\
+SOURCES := 						\
+	kernel/setup.c			\
+	kernel/cpu.c				\
+	kernel/gdt.c				\
+	kernel/idt.S 				\
+	kernel/idt.c				\
+	kernel/irq.c				\
+	kernel/irqchip.c		\
+	kernel/i8259.c			\
+	kernel/exception.c	\
+	sync/spinlock.c			\
 
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 

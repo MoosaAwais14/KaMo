@@ -65,8 +65,12 @@ void interrupt_dispatch(interrupt_context_t* context)
       irq_dispatch(irq);
       break;
 
-    default:
+    case INTERRUPT_EXCEPTION:
+      
+      break;
 
+    default:
+      
       break;
   }
 }
