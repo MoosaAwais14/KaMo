@@ -1,6 +1,7 @@
 .PHONY: all
 
 SOURCES := 		\
+	memblock.c
 
 OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
 

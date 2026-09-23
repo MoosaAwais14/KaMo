@@ -9,10 +9,9 @@
 void setup_arch(void)
 {
   cpu_early_init(0);
-  
+
   interrupt_init();
   {
-    // Add interrupt vectors
     arch_exception_early_init();
   }
 
