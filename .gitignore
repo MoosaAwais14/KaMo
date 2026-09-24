@@ -4,9 +4,10 @@
 *.elf
 *.bin
 *.iso
+*.img
+*.map
 
 compile_commands.json
 compile_flags.txt
 
-*.img
-*.map
+out

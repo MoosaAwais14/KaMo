@@ -4,26 +4,26 @@ INCLUDE "@PROJECT_DIR@/kernel/arch/@ARCH@/memory.ld"
 
 SECTIONS
 {
-  . = KAMO_BASE;
+  . = BASE;
 
-  .kamo.text ALIGN(4K) :
+  .boot.text ALIGN(4K) :
   {
-    *(.kamo.text)
+    *(.boot.text)
   }
 
-  .kamo.rodata ALIGN(4K) :
+  .boot.rodata ALIGN(4K) :
   {
-    *(.kamo.rodata)
+    *(.boot.rodata)
   }
 
-  .kamo.data ALIGN(4K) :
+  .boot.data ALIGN(4K) :
   {
-    *(.kamo.data)
+    *(.boot.data)
   }
 
-  .kamo.bss ALIGN(4K) (NOLOAD) :
+  .boot.bss ALIGN(4K) (NOLOAD) :
   {
-    *(.kamo.bss)
+    *(.boot.bss)
   }
 
   . = ALIGN(4K);

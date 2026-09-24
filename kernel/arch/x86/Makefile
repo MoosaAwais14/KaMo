@@ -1,5 +1,9 @@
 .PHONY: all compile_commands
 
+ifndef OUT 
+$(error OUT is required. Usage: make ... OUT=<dir>)
+endif
+
 SOURCES := 						\
 	kernel/setup.c			\
 	kernel/cpu.c				\
@@ -12,15 +16,15 @@ SOURCES := 						\
 	kernel/exception.c	\
 	sync/spinlock.c			\
 
-OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
+OBJECTS := $(SOURCES:%=$(OUT)/%.o)
 
 all: $(OBJECTS)
 
-$(BUILD)/%.S.o: %.S
+$(OUT)/%.S.o: %.S
 	mkdir -p $(dir $@)
 	$(CC) $(ASFLAGS) -c $< -o $@
 
-$(BUILD)/%.c.o: %.c
+$(OUT)/%.c.o: %.c
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 

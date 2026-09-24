@@ -1,13 +1,11 @@
 include config.mk
 
-PROJECT_DIR := $(CURDIR)
-
-export PROJECT_DIR
 export ARCH
 export CC
 export LD
 export OBJCOPY
 export OBJDUMP
+
 export COMMON_FLAGS
 export CFLAGS
 export ASFLAGS
@@ -19,15 +17,21 @@ endif
 
 export KERNEL_BOOTLOADER
 
-.PHONY: all image kamo kernel userspace clean compile_commands
+PROJECT_DIR := $(CURDIR)
+export PROJECT_DIR
 
-all: userspace kamo kernel
+PROJECT_OUT := $(PROJECT_DIR)/out
+export PROJECT_OUT
 
-image: userspace kamo kernel
-	$(MAKE) -C image
+.PHONY: all kamo boot kernel userspace package clean compile_commands
 
-kamo:
-	$(MAKE) -C kamo
+all: boot kernel userspace
+
+kamo: all
+	$(MAKE) -C build
+
+boot:
+	$(MAKE) -C boot
 
 kernel:
 	$(MAKE) -C kernel
@@ -35,18 +39,11 @@ kernel:
 userspace:
 	$(MAKE) -C userspace
 
-compile_commands:
-	$(MAKE) clean
-	bear -- $(MAKE) ARCH=$(ARCH) KERNEL_BOOTLOADER=$(KERNEL_BOOTLOADER) all
-	$(MAKE) clean
+package:
+	$(MAKE) -C build package
 
-	$(MAKE) -C kamo compile_commands
-	$(MAKE) -C kernel compile_commands
-	$(MAKE) -C userspace compile_commands
+compile_commands:
+	$(MAKE) -C build compile_commands
 
 clean:
-	$(MAKE) -C image clean
-	$(MAKE) -C kamo clean
-	$(MAKE) -C kernel clean
-	$(MAKE) -C userspace clean
-
+	rm -rf $(PROJECT_OUT)

@@ -1,16 +1,16 @@
-#include "grub2.h"
+#include "grub.h"
 
 #include <lib/string.h>
 
-grub2_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_info_t* boot_info)
+grub_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_info_t* boot_info)
 {
   if(!boot_info || !ptr)
-    return GRUB2_ERR_BAD_ARGS;
+    return GRUB_ERR_BAD_ARGS;
 
   memset(boot_info, 0, sizeof(boot_info_t));
 
   if(MULTIBOOT2_BOOTLOADER_MAGIC != magic)
-    return GRUB2_ERR_BAD_MAGIC;
+    return GRUB_ERR_BAD_MAGIC;
 
   void* mb2 = (void*)(uintptr_t)ptr;
 
@@ -27,7 +27,7 @@ grub2_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_info_t* 
           struct multiboot_tag_string* cmdline = (void*)tag;
 
           if(strlen(cmdline->string) > BOOT_INFO_CMDLINE_MAX)
-            return GRUB2_ERR_CMDLINE_MAXED;
+            return GRUB_ERR_CMDLINE_MAXED;
 
           strcpy(boot_info->cmdline, cmdline->string);
 
@@ -42,7 +42,7 @@ grub2_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_info_t* 
           {
             if(boot_info->memory_map.count >= BOOT_INFO_MEMORY_MAP_COUNT_MAX)
             {
-              return GRUB2_ERR_MMAP_MAXED;
+              return GRUB_ERR_MMAP_MAXED;
             }
 
             uint64_t address = entry->addr;
@@ -120,5 +120,5 @@ grub2_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_info_t* 
     }
   }
 
-  return GRUB2_OK;
+  return GRUB_OK;
 }

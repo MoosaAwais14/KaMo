@@ -1,8 +1,12 @@
 .PHONY: all $(KERNEL_BOOTLOADER) clean compile_commands
 
-LINKER := kamo.ld
+ifndef OUT 
+	$(error OUT is required. Usage: make ... OUT=<dir>)
+endif
 
-TARGET := $(BUILD)/kamo.o
+LINKER := boot.ld
+
+TARGET := $(PROJECT_OUT)/boot.o
 
 INCLUDE_FLAGS := 									\
 	-I$(CURDIR)/include 						\
@@ -21,18 +25,18 @@ ASFLAGS :=					\
 	$(INCLUDE_FLAGS)
 
 OBJECTS := 																		\
-	$(shell find $(BUILD) -type f -name '*.o')
+	$(shell find $(OUT) -type f -name '*.o')
 
 all: $(TARGET)
 
 $(TARGET): $(KERNEL_BOOTLOADER)
 	mkdir -p $(dir $@)
 	$(LD) -r -T $(LINKER) 												\
-		$(shell find $(BUILD) -type f -name '*.o')	\
+		$(shell find $(OUT) -type f -name '*.o')	\
 		-o $@
 
 $(KERNEL_BOOTLOADER):
-	$(MAKE) -C $(KERNEL_BOOTLOADER) CFLAGS="$(CFLAGS)" ASFLAGS="" BUILD="$(BUILD)"
+	$(MAKE) -C $(KERNEL_BOOTLOADER) CFLAGS="$(CFLAGS)" ASFLAGS="" OUT="$(OUT)"
 
 compile_commands:
 		printf '%s\n' $(COMMON_FLAGS) > compile_flags.txt

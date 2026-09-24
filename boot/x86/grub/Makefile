@@ -6,15 +6,15 @@ SOURCES := 					\
 	multiboot2_info.c	\
 	uart.c						\
 
-OBJECTS := $(SOURCES:%=$(BUILD)/%.o)
+OBJECTS := $(SOURCES:%=$(OUT)/%.o)
 
 all: $(OBJECTS)
 
-$(BUILD)/%.S.o: %.S
+$(OUT)/%.S.o: %.S
 	mkdir -p $(dir $@)
 	$(CC) $(ASFLAGS) -c $< -o $@
 
-$(BUILD)/%.c.o: %.c
+$(OUT)/%.c.o: %.c
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 

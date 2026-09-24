@@ -1,4 +1,4 @@
-#include "grub2.h"
+#include "grub.h"
 
 #include <asm/io.h>
 #include <asm/cpu.h>
@@ -41,10 +41,10 @@ static inline uint16_t uart_divisor(uint16_t baud_rate)
   return UART_CLOCK / (16 * baud_rate);
 }
 
-grub2_err_t uart_init(uint16_t port_address, uint16_t baud_rate)
+grub_err_t uart_init(uint16_t port_address, uint16_t baud_rate)
 {
   if (uart.is_initialized)
-    return GRUB2_ERR_ALREADY_INITIALIZED;
+    return GRUB_ERR_ALREADY_INITIALIZED;
 
   uint16_t divisor = uart_divisor(baud_rate);
 
@@ -65,7 +65,7 @@ grub2_err_t uart_init(uint16_t port_address, uint16_t baud_rate)
   uart.baud_rate = baud_rate;
   uart.is_initialized = 1;
 
-  return GRUB2_OK;
+  return GRUB_OK;
 }
 
 void uart_shutdown(void)
@@ -79,16 +79,16 @@ void uart_shutdown(void)
   uart.is_initialized = 0;
 }
 
-grub2_err_t uart_write_byte(int8_t data)
+grub_err_t uart_write_byte(int8_t data)
 {
   if (!uart.is_initialized)
-    return GRUB2_ERR_NOT_INITIALIZED;
+    return GRUB_ERR_NOT_INITIALIZED;
 
   while ((x86_inb(uart.port_addr + UART_REG_LSR) & UART_LSR_THRE) == 0)
     x86_cpu_pause();
 
   x86_outb(uart.port_addr + UART_REG_DATA, data);
 
-  return GRUB2_OK;
+  return GRUB_OK;
 }
 

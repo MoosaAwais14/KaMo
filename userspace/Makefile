@@ -1,4 +1,4 @@
-.PHONY: build clean compile_commands
+.PHONY: build compile_commands
 
 build:
 	echo $(ARCH)
