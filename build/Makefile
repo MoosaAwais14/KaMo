@@ -1,9 +1,9 @@
 .PHONY: all link package
 
-all: link package
+all: link
 
 link:
 	$(MAKE) -C link
 
-package:
+package: link
 	$(MAKE) -C package

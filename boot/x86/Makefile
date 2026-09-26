@@ -1,42 +1,40 @@
-.PHONY: all $(KERNEL_BOOTLOADER) clean compile_commands
+.PHONY: all $(KERNEL_BOOTLOADER) compile_commands
+.DELETE_ON_ERROR:
 
-ifndef OUT 
-	$(error OUT is required. Usage: make ... OUT=<dir>)
+ifndef OUT
+$(error OUT is required. Usage: make ... OUT=<dir>)
 endif
 
 LINKER := boot.ld
 
 TARGET := $(PROJECT_OUT)/boot.o
 
-INCLUDE_FLAGS := 									\
-	-I$(CURDIR)/include 						\
-	-I$(PROJECT_DIR)/kernel/include 
+INCLUDE_FLAGS := \
+	-I$(CURDIR)/include \
+	-I$(PROJECT_DIR)/kernel/include
 
-COMMON_FLAGS := 		\
-	$(COMMON_FLAGS) 	\
+COMMON_FLAGS := \
+	$(COMMON_FLAGS) \
 	$(INCLUDE_FLAGS)
 
-CFLAGS := 					\
-	$(CFLAGS) 				\
+CFLAGS := \
+	$(CFLAGS) \
 	$(INCLUDE_FLAGS)
 
-ASFLAGS :=					\
-	$(ASFLAGS) 				\
+ASFLAGS := \
+	$(ASFLAGS) \
 	$(INCLUDE_FLAGS)
-
-OBJECTS := 																		\
-	$(shell find $(OUT) -type f -name '*.o')
 
 all: $(TARGET)
 
 $(TARGET): $(KERNEL_BOOTLOADER)
 	mkdir -p $(dir $@)
-	$(LD) -r -T $(LINKER) 												\
-		$(shell find $(OUT) -type f -name '*.o')	\
+	$(LD) -r -T $(LINKER) \
+		$(shell find $(OUT) -type f -name '*.o' | LC_ALL=C sort) \
 		-o $@
 
 $(KERNEL_BOOTLOADER):
 	$(MAKE) -C $(KERNEL_BOOTLOADER) CFLAGS="$(CFLAGS)" ASFLAGS="" OUT="$(OUT)"
 
 compile_commands:
-		printf '%s\n' $(COMMON_FLAGS) > compile_flags.txt
+	printf '%s\n' $(COMMON_FLAGS) > compile_flags.txt

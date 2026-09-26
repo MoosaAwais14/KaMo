@@ -1,20 +1,20 @@
 # Project Directory Overview	
 The KaMo project is, in essence, an operating system project as a whole. For this reason, and for other organizational purposes, the project is split into three main parts: **bootloader compliance, the kernel, and userspace (system) programs**.
 
-## kamo/
+## boot/
 This folder contains the bootloader compliance code.
 ### Why?
-The idea behind this separation is to more clearly define the responsibilities of KaMo's kernel. Rather than having the kernel itself be responsible for everything required to satisfy the bootloader's expectations, those responsibilities are isolated within *kamo/*.
+The idea behind this separation is to more clearly define the responsibilities of KaMo's kernel. Rather than having the kernel itself be responsible for everything required to satisfy the bootloader's expectations, those responsibilities are isolated within *boot/*.
 
 This creates a clearer boundary between what is required to boot KaMo and what is required to run KaMo. The bootloader compliance layer handles the former, while the kernel can remain focused on its own responsibilities as an operating system kernel.
 ### Structure
-Within the *kamo/* folder are multiple implementations for different architectures. For example, *kamo/x86/* contains the implementation specific to the x86 architecture.
+Within the *boot/* folder are multiple implementations for different architectures. For example, *boot/x86/* contains the implementation specific to the x86 architecture.
 
-Within each architecture, there are further directories for the bootloaders or boot protocols that KaMo supports. For example, *kamo/x86/GRUB2/* contains the implementation for booting KaMo through GRUB 2 on x86.
+Within each architecture, there are further directories for the bootloaders or boot protocols that KaMo supports. For example, *boot/x86/grub/* contains the implementation for booting KaMo through GRUB on x86.
 ### Responsibilities
 The expectation for each bootloader-compliant entry implementation is to ready the machine into a "runnable" state, as defined by KaMo's standards.
 
---- This is the end of *kamo/* responsibilities for this document ---
+--- This is the end of *boot/* responsibilities for this document ---
 
 ## kernel/
 This folder contains the kernel code.

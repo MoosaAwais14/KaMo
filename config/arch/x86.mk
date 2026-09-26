@@ -1,0 +1,2 @@
+CROSS_COMPILE ?= i686-elf-
+ARCH_FLAGS := -m32

@@ -1,15 +1,16 @@
 .PHONY: all
+.DELETE_ON_ERROR:
 
 OUT := $(PROJECT_OUT)/link
 
-KAMO_LD_IN  := kamo.ld.in
-KAMO_LD     := $(OUT)/kamo.ld
-KAMO_ELF    := $(PROJECT_OUT)/kamo.elf
-KAMO_MAP    := $(OUT)/kamo.map
+KAMO_LD_IN := kamo.ld.in
+KAMO_LD := $(OUT)/kamo.ld
+KAMO_ELF := $(PROJECT_OUT)/kamo.elf
+KAMO_MAP := $(OUT)/kamo.map
 
-BOOT_OBJ 			:= $(PROJECT_OUT)/boot.o
+BOOT_OBJ := $(PROJECT_OUT)/boot.o
 BOOT_LINK_OBJ := $(OUT)/boot.link.o
-KERNEL_OBJ 		:= $(PROJECT_OUT)/kernel.o
+KERNEL_OBJ := $(PROJECT_OUT)/kernel.o
 
 all: $(KAMO_ELF)
 

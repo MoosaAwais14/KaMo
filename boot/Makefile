@@ -1,8 +1,8 @@
-.PHONY: all arch compiled_commands
+.PHONY: all arch compile_commands
 
 OUT := $(PROJECT_OUT)/boot
 
-all: arch 
+all: arch
 
 arch:
 	$(MAKE) -C $(ARCH) OUT="$(OUT)"
