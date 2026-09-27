@@ -1,0 +1,8 @@
+#ifndef ASM_PMM_H
+#define ASM_PMM_H
+
+#define PMM_FRAME_SHIFT 12
+#define PMM_FRAME_SIZE  (1UL << PMM_FRAME_SHIFT)
+#define PMM_MAX_ADDRESS 0xFFFFFFFF
+
+#endif

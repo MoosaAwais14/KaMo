@@ -7,6 +7,7 @@ endif
 
 SOURCES := \
 	kernel/setup.c \
+	kernel/setup.S \
 	kernel/cpu.c \
 	kernel/gdt.c \
 	kernel/idt.S \
@@ -15,7 +16,7 @@ SOURCES := \
 	kernel/irqchip.c \
 	kernel/i8259.c \
 	kernel/exception.c \
-	sync/spinlock.c
+	locking/spinlock.c
 
 OBJECTS := $(SOURCES:%=$(OUT)/%.o)
 

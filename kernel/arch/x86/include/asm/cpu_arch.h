@@ -10,6 +10,7 @@ typedef struct arch_cpu_s {
   gdt_cpu_t gdt;
   idt_cpu_t idt;
 
+  uintptr_t kernel_stack_base;
   uintptr_t kernel_stack;
 } arch_cpu_t;
 

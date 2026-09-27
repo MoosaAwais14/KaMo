@@ -1,6 +1,6 @@
 #include <mm/memblock.h>
 
-#include <sync/spinlock.h>
+#include <locking/spinlock.h>
 
 #include <lib/bitmap.h>
 
@@ -13,7 +13,7 @@ struct memblock_state_s {
   bitmap_t bitmap;
 
   raw_spinlock_t rlock;
-};
+} __aligned(KiB(4));
 
 static inline size_t size_to_region_count(size_t size);
 

@@ -1,4 +1,4 @@
-#include <sync/spinlock.h>
+#include <locking/spinlock.h>
 
 #include <asm/cpu.h>
 #include <asm/irqflags.h>

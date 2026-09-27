@@ -3,7 +3,7 @@
 
 #include <kernel/interrupt.h>
 
-#include <sync/spinlock.h>
+#include <locking/spinlock.h>
 
 #include <asm/idt_arch.h>
 

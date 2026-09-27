@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include <sync/spinlock.h>
+#include <locking/spinlock.h>
 
 #define INTERRUPT_VECTOR_COUNT 256
 

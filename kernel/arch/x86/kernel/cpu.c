@@ -1,6 +1,6 @@
 #include <asm/cpu_arch.h>
 
-#include <sync/spinlock.h>
+#include <locking/spinlock.h>
 #include <lib/memory.h>
 
 static uint32_t arch_cpu_id_default(void);

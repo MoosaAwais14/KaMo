@@ -4,7 +4,7 @@
 #include <asm/irqflags.h>
 #include <asm/setup.h>
 
-#include <mm/memblock.h>
+#include <mm/pmm.h>
 
 boot_info_t kernel_boot_info;
 
@@ -14,7 +14,12 @@ void __noreturn start_kernel(void)
 
   setup_arch();
 
-  memblock_init();
+  __builtin_unreachable();
+}
+
+void __noreturn continue_kernel(void)
+{
+  pmm_init();
 
   while(1)
   {

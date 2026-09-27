@@ -5,8 +5,9 @@ ifndef OUT
 $(error OUT is required. Usage: make ... OUT=<dir>)
 endif
 
-SOURCES := \
-	memblock.c
+SOURCES := 		\
+	memblock.c	\
+	pmm.c
 
 OBJECTS := $(SOURCES:%=$(OUT)/%.o)
 

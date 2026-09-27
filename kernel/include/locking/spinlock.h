@@ -1,5 +1,5 @@
-#ifndef SYNC_SPINLOCK_H
-#define SYNC_SPINLOCK_H
+#ifndef LOCKING_SPINLOCK_H
+#define LOCKING_SPINLOCK_H
 
 #include <stdint.h>
 #include <stdatomic.h>

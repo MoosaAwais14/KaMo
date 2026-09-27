@@ -2,7 +2,7 @@
 
 #include <asm/io.h>
 
-#include <sync/spinlock.h>
+#include <locking/spinlock.h>
 
 static inline void io_wait(void);
 
