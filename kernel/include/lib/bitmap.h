@@ -14,6 +14,13 @@
   (BITMAP_WORD_BITS == 64) ? 6 :  \
   0)
 
+_Static_assert(
+    BITMAP_WORD_BITS == 16 ||
+    BITMAP_WORD_BITS == 32 ||
+    BITMAP_WORD_BITS == 64,
+    "Unsupported bitmap word size"
+);
+
 #define BITMAP_WORD_MASK    (BITMAP_WORD_BITS - 1)
 
 #define BITMAP_WORD_COUNT(bits) \
