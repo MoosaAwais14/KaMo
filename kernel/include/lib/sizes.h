@@ -1,5 +1,5 @@
-#ifndef SIZES_H
-#define SIZES_H
+#ifndef LIB_SIZES_H
+#define LIB_SIZES_H
 
 #define SZ_1K   0x00000400
 #define SZ_1M   0x00100000

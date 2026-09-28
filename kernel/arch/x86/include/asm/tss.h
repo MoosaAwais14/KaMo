@@ -1,7 +1,7 @@
 #ifndef ASM_TSS_H
 #define ASM_TSS_H
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 #ifndef __ASSEMBLER__
 

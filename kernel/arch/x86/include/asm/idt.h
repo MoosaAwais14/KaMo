@@ -1,7 +1,7 @@
 #ifndef ASM_IDT_H
 #define ASM_IDT_H
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 #define IDT_IRQ_VECTOR_BASE 0x20
 

@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 #define CPU_MAX 64 
 

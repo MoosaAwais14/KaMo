@@ -1,7 +1,7 @@
 #ifndef KERNEL_START_KERNEL_H
 #define KERNEL_START_KERNEL_H
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 #include <kernel/boot_info.h>
 

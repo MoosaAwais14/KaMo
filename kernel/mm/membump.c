@@ -1,7 +1,7 @@
 #include <mm/membump.h>
 
-#include <attributes.h>
-#include <sizes.h>
+#include <compiler/attributes.h>
+#include <lib/sizes.h>
 
 #include <locking/spinlock.h>
 #include <lib/memory.h>

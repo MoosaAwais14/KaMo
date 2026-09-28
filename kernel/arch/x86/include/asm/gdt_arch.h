@@ -5,7 +5,7 @@
 
 #include <asm/tss.h>
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 #define GDT_NULL_INDEX          0x00
 #define GDT_KERNEL_CODE32_INDEX 0x01

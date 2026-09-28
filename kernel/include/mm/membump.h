@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <sizes.h>
+#include <lib/sizes.h>
 
 #define MEMBUMP_RESERVED_SIZE  KiB(128)
 

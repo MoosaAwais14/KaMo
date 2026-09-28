@@ -1,6 +1,6 @@
 #include "grub.h"
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 #include <kernel/start_kernel.h>
 
 #include <asm/cpu.h>

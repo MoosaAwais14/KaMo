@@ -14,16 +14,12 @@ void __noreturn start_kernel(void)
 
   setup_arch();
 
-  __builtin_unreachable();
+  local_safe_halt();
 }
 
 void __noreturn continue_kernel(void)
 {
   pmm_init();
 
-  while(1)
-  {
-    local_irq_disable();
-    local_halt();
-  }
+  local_safe_halt();
 }

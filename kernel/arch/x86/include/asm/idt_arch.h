@@ -3,7 +3,7 @@
 
 #include <asm/idt.h>
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 #define IDT_ENTRY_COUNT 256
 

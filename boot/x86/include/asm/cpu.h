@@ -5,7 +5,7 @@
 
 #include <cpuid.h>
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 static __always_inline void x86_cpu_cli(void)
 {

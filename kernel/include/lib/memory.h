@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 #define ALIGN_UP(num, alignment)    (((num) + (alignment - 1)) & ~(alignment - 1))
 #define ALIGN_DOWN(num, alignment)  ((num) & ~(alignment - 1))

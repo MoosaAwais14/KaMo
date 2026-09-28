@@ -2,8 +2,8 @@
 #define ASM_CPU_H
 
 #include <stdint.h>
-
-#include <attributes.h>
+#include <compiler/attributes.h>
+#include <asm/irqflags.h>
 
 static __always_inline void cpu_relax(void)
 {
@@ -13,6 +13,16 @@ static __always_inline void cpu_relax(void)
 static __always_inline void local_halt(void)
 {
   __asm__ volatile("hlt" ::: "memory");
+}
+
+static __always_inline __noreturn void local_safe_halt(void)
+{
+  local_irq_disable();
+  
+  for(;;)
+  {
+    local_halt();
+  }
 }
 
 #endif

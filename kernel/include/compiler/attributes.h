@@ -1,5 +1,5 @@
-#ifndef ATTRIBUTES_H
-#define ATTRIBUTES_H
+#ifndef COMPILER_ATTRIBUTES_H
+#define COMPILER_ATTRIBUTES_H
 
 #define __always_inline   inline __attribute__((__always_inline__))
 

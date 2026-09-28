@@ -1,7 +1,7 @@
 #ifndef ASM_GDT_H
 #define ASM_GDT_H
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 #define GDT_SELECTOR(index, rpl)  \
   ((index << 3) | (rpl & 0x3))

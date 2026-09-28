@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 static __always_inline uint8_t x86_inb(uint16_t port)
 {

@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 #define PAGE_DIRECTORY_ENTRIES  1024
 

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include <attributes.h>
+#include <compiler/attributes.h>
 
 static __always_inline int abs(int x)
 {
