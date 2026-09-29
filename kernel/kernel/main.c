@@ -4,8 +4,6 @@
 #include <asm/irqflags.h>
 #include <asm/setup.h>
 
-#include <mm/pmm.h>
-
 boot_info_t kernel_boot_info;
 
 void __noreturn start_kernel(void)
@@ -17,9 +15,7 @@ void __noreturn start_kernel(void)
   local_safe_halt();
 }
 
-void __noreturn continue_kernel(void)
+void __noreturn continue_start_kernel(void)
 {
-  pmm_init();
-
   local_safe_halt();
 }

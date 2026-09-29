@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <asm/page.h>
+
 #define PAGE_TABLE_ENTRIES      1024
 #define PAGE_DIRECTORY_ENTRIES  1024
 

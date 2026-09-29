@@ -37,6 +37,7 @@ arch:
 generic:
 	$(MAKE) -C kernel CFLAGS="$(CFLAGS)" ASFLAGS="$(ASFLAGS)" OUT="$(OUT)"
 	$(MAKE) -C mm CFLAGS="$(CFLAGS)" ASFLAGS="$(ASFLAGS)" OUT="$(OUT)"
+	$(MAKE) -C lib CFLAGS="$(CFLAGS)" ASFLAGS="$(ASFLAGS)" OUT="$(OUT)"
 
 compile_commands:
 	printf '%s\n' $(COMMON_FLAGS) > compile_flags.txt

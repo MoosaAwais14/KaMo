@@ -1,5 +1,5 @@
-#ifndef KAMO_X86_INCLUDE_CPU_H
-#define KAMO_X86_INCLUDE_CPU_H
+#ifndef BOOT_X86_INCLUDE_CPU_H
+#define BOOT_X86_INCLUDE_CPU_H
 
 #include <stdint.h>
 

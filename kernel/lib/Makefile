@@ -5,10 +5,8 @@ ifndef OUT
 $(error OUT is required. Usage: make ... OUT=<dir>)
 endif
 
-SOURCES := 		\
-	earlybump.c	\
-	memblock.c	\
-	pmm.c 			
+SOURCES := 				\
+	tree/rb_tree.c
 
 OBJECTS := $(SOURCES:%=$(OUT)/%.o)
 
@@ -23,3 +21,4 @@ $(OUT)/%.c.o: %.c
 	$(CC) $(CFLAGS) -MMD -MP -MF $(@:.o=.d) -c $< -o $@
 
 -include $(OBJECTS:.o=.d)
+

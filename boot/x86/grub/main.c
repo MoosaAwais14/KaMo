@@ -12,6 +12,7 @@ static void fail(const char* file, int line, const char* msg);
 static grub_err_t check_cpu_support(void);
 static void create_page_directory(void);
 static void enable_paging(void);
+static void print_hex64(uint64_t value);
 
 static boot_info_t grub2_boot_info = { 0 };
 static page_directory_t grub2_page_directory = { 0 };
@@ -35,12 +36,33 @@ void grub2_start(uint32_t magic, uint32_t ptr)
   if((err = check_cpu_support()) != GRUB_OK)
     FAIL("check_cpu_support");
 
+  {
+    puts("Memory map:\n");
+
+    for (uint16_t i = 0; i < grub2_boot_info.memory_map.count; i++) {
+        const boot_info_memory_map_entry_t *entry = &grub2_boot_info.memory_map.map[i];
+
+        puts("  [");
+        print_hex64(entry->start_address);
+
+        puts(" - ");
+        print_hex64(entry->end_address);
+
+        puts("] ");
+
+        if (entry->ok)
+            puts("OK\n");
+        else
+            puts("BAD\n");
+    }
+  }
+
   create_page_directory();
   puts("Created page_directory\n");
 
   enable_paging();
   puts("Enabled paging\n");
-  
+
   puts("Copying boot_info to kernel\n");
   memcpy(&kernel_boot_info, &grub2_boot_info, sizeof(boot_info_t));
 
@@ -48,7 +70,7 @@ void grub2_start(uint32_t magic, uint32_t ptr)
 
   puts("UART Shut down\n\n");
   uart_shutdown();
-  
+
   start_kernel();
 }
 
@@ -123,6 +145,21 @@ static void enable_paging(void)
   uint32_t cr0 = x86_cpu_read_cr0();
   cr0 |= (1 << 31);
   x86_cpu_write_cr0(cr0);
+}
+
+static void print_hex64(uint64_t value)
+{
+    char buf[17];
+    const char *hex = "0123456789abcdef";
+
+    buf[16] = '\0';
+
+    for (int i = 15; i >= 0; i--) {
+        buf[i] = hex[value & 0xF];
+        value >>= 4;
+    }
+
+    puts(buf);
 }
 
 __boot grub_multiboot_header_t multiboot2_header = {

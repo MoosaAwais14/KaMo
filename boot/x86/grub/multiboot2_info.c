@@ -48,17 +48,16 @@ grub_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_info_t* b
             uint64_t address = entry->addr;
             uint64_t length = entry->len;
 
-            if (address > UINTPTR_MAX) {
-              continue; 
-            }
+            if (length == 0 || address > UINTPTR_MAX)
+              continue;
 
-            if (address + length > ((uint64_t)UINTPTR_MAX + 1)) {
-              length = ((uint64_t)UINTPTR_MAX + 1) - address;
-            }
+            uint64_t addressable_length = (uint64_t)UINTPTR_MAX - address + 1;
+            if (length > addressable_length)
+              length = addressable_length;
 
             boot_info_memory_map_entry_t* e = &boot_info->memory_map.map[boot_info->memory_map.count++];
             e->start_address = address;
-            e->end_address = address + length;
+            e->end_address = address + length - 1;
             e->ok = (entry->type == MULTIBOOT_MEMORY_AVAILABLE) ? 1 : 0;
           }
 

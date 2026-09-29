@@ -3,8 +3,7 @@
 
 OUT := $(PROJECT_OUT)/link
 
-KAMO_LD_IN := kamo.ld.in
-KAMO_LD := $(OUT)/kamo.ld
+KAMO_LD := $(PROJECT_DIR)/kernel/arch/$(ARCH)/kernel.ld
 KAMO_ELF := $(PROJECT_OUT)/kamo.elf
 KAMO_MAP := $(OUT)/kamo.map
 
@@ -14,7 +13,7 @@ KERNEL_OBJ := $(PROJECT_OUT)/kernel.o
 
 all: $(KAMO_ELF)
 
-$(KAMO_ELF): $(KAMO_LD) $(BOOT_LINK_OBJ) $(KERNEL_OBJ)
+$(KAMO_ELF): $(BOOT_LINK_OBJ) $(KERNEL_OBJ)
 	mkdir -p $(dir $@)
 	$(LD) \
 		-T $(KAMO_LD) \
@@ -22,13 +21,6 @@ $(KAMO_ELF): $(KAMO_LD) $(BOOT_LINK_OBJ) $(KERNEL_OBJ)
 		$(BOOT_LINK_OBJ) \
 		$(KERNEL_OBJ) \
 		-o $@
-
-$(KAMO_LD): $(KAMO_LD_IN)
-	mkdir -p $(OUT)
-	sed \
-		-e 's|@ARCH@|$(ARCH)|g' \
-		-e 's|@PROJECT_DIR@|$(PROJECT_DIR)|g' \
-		$< > $@
 
 $(BOOT_LINK_OBJ): $(BOOT_OBJ)
 	mkdir -p $(dir $@)

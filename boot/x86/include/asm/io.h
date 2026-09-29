@@ -1,5 +1,5 @@
-#ifndef KAMO_X86_INCLUDE_ASM_IO_H
-#define KAMO_X86_INCLUDE_ASM_IO_H
+#ifndef BOOT_X86_INCLUDE_ASM_IO_H
+#define BOOT_X86_INCLUDE_ASM_IO_H
 
 #include <stdint.h>
 #include <stddef.h>
