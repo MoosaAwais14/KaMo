@@ -102,15 +102,15 @@ static grub_err_t check_cpu_support(void)
 
 static void create_page_directory(void)
 {
-  extern char KERNEL_VMA[];
-  uintptr_t kernel_vma = (uintptr_t)KERNEL_VMA;
-  size_t kernel_vma_idx = kernel_vma >> 22u;
+  extern char PAGE_OFFSET[];
+  uintptr_t page_offset = (uintptr_t)PAGE_OFFSET;
+  size_t page_offset_idx = page_offset >> 22u;
 
   memset(&grub2_page_directory, 0, sizeof(grub2_page_directory));
 
   size_t i;
 
-  for(i = 0; i < kernel_vma_idx; i++)
+  for(i = 0; i < page_offset_idx; i++)
   {
     uint32_t pa = (uint32_t)(i << 22);
 
@@ -121,9 +121,9 @@ static void create_page_directory(void)
     grub2_page_directory.entries[i].value |= pa;
   }
 
-  for(i = kernel_vma_idx; i < PAGE_DIRECTORY_ENTRIES; i++)
+  for(i = page_offset_idx; i < PAGE_DIRECTORY_ENTRIES; i++)
   {
-    uint32_t pa = (uint32_t)((i - kernel_vma_idx) << 22);
+    uint32_t pa = (uint32_t)((i - page_offset_idx) << 22);
 
     grub2_page_directory.entries[i].ps1.present = 1;
     grub2_page_directory.entries[i].ps1.page_size = 1;

@@ -1,13 +1,11 @@
+#include <asm/page.h>
+#include <asm/sizes.h>
+
 ENTRY(_start)
-
-BASE  = 0x00100000;
-KERNEL_VMA = 0xC0000000;
-
-PROVIDE(__PAGE_OFFSET = KERNEL_VMA);
 
 SECTIONS
 {
-  . = BASE;
+  . = LOAD_PHYSICAL_ADDR;
 
   .boot.text ALIGN(4K) :
   {
@@ -30,36 +28,39 @@ SECTIONS
   }
 
   . = ALIGN(4K);
-  . += KERNEL_VMA;
+  . += PAGE_OFFSET;
 
-  .text ALIGN(4K) : AT(ADDR(.text) - KERNEL_VMA)
+  .text ALIGN(4K) : AT(ADDR(.text) - PAGE_OFFSET)
   {
     _stext = .;
 
     *(.text*)
-
   }
   _etext = .;
 
-  .rodata ALIGN(4K) : AT(ADDR(.rodata) - KERNEL_VMA)
+  .rodata ALIGN(4K) : AT(ADDR(.rodata) - PAGE_OFFSET)
   {
     _srodata = .;
 
     *(.rodata*)
-
   }
   _erodata = .;
 
-  .data ALIGN(4K) : AT(ADDR(.data) - KERNEL_VMA)
+  .data ALIGN(4K) : AT(ADDR(.data) - PAGE_OFFSET)
   {
     _sdata = .;
 
     *(.data*)
 
+    . = ALIGN(4K);
+    __stack_bottom = .;
+    . += KERNEL_STACK_SIZE;
+    . = ALIGN(KERNEL_STACK_ALIGN);
+    __stack_top = .;
   }
   _edata = .;
 
-  .bss ALIGN(4K) (NOLOAD) : AT(ADDR(.bss) - KERNEL_VMA)
+  .bss ALIGN(4K) (NOLOAD) : AT(ADDR(.bss) - PAGE_OFFSET)
   {
     _sbss = .;
 
