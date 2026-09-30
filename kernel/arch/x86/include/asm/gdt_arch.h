@@ -3,10 +3,6 @@
 
 #include <asm/gdt.h>
 
-#include <asm/tss.h>
-
-#include <compiler/attributes.h>
-
 #define GDT_NULL_INDEX          0x00
 #define GDT_KERNEL_CODE32_INDEX 0x01
 #define GDT_KERNEL_DATA32_INDEX 0x02
@@ -31,7 +27,10 @@
 #define GDT_TSS_SELECTOR  \
     GDT_SELECTOR(GDT_TSS_INDEX, 0)
 
-#ifndef __ASSEMBLER__
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
+
+#include <asm/tss.h>
+#include <compiler/attributes.h>
 
 typedef struct gdt_cpu_s {
   gdt_entry_t entries[GDT_ENTRY_COUNT];

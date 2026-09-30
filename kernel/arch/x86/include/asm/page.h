@@ -13,8 +13,10 @@ LOAD_PHYSICAL_ADDR = __LOAD_PHYSICAL_ADDR;
 
 #define PAGE_OFFSET   (__PAGE_OFFSET)
 
+#ifndef __ASSEMBLER__
 #define __va(x)		    ((void*)((unsigned long)(x) + PAGE_OFFSET))
 #define __pa(x)       ((void*)((unsigned long)(x) - PAGE_OFFSET))
+#endif
 
 #endif
 

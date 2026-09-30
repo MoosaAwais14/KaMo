@@ -1,6 +1,8 @@
 #ifndef ASM_IO_H
 #define ASM_IO_H
 
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
+
 #include <stdint.h>
 
 #include <compiler/attributes.h>
@@ -70,5 +72,7 @@ static __always_inline void writeq(uintptr_t addr, uint64_t val) {
 static __always_inline uint64_t readq(uintptr_t addr) {
   return *(volatile uint64_t*)addr;
 }
+
+#endif
 
 #endif

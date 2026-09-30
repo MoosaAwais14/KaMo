@@ -1,16 +1,15 @@
 #ifndef ASM_IDT_H
 #define ASM_IDT_H
 
-#include <compiler/attributes.h>
-
 #define IDT_IRQ_VECTOR_BASE 0x20
 
 #define IDT_DEFAULT_INTERRUPT_GATE 0x8E
 #define IDT_DEFAULT_TRAP_GATE      0x8F
 #define IDT_USER_TRAP_GATE         0xEF
 
-#ifndef __ASSEMBLER__
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
 
+#include <compiler/attributes.h>
 #include <stdint.h>
 
 typedef struct idt_entry_s {

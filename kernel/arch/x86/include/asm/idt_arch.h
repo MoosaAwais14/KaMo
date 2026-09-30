@@ -3,11 +3,11 @@
 
 #include <asm/idt.h>
 
-#include <compiler/attributes.h>
-
 #define IDT_ENTRY_COUNT 256
 
-#ifndef __ASSEMBLER__
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
+
+#include <compiler/attributes.h>
 
 typedef struct idt_frame_s {
   uint32_t edi;

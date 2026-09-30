@@ -1,6 +1,8 @@
 #ifndef ASM_CPU_ARCH_H
 #define ASM_CPU_ARCH_H
 
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
+
 #include <kernel/cpu.h>
 
 #include <asm/gdt_arch.h>
@@ -25,5 +27,7 @@ extern uint32_t arch_cpu_current_id(void);
 
 extern void arch_cpu_set_cpu_count_provider(arch_cpu_cpu_count_fn_t fn);
 extern uint32_t arch_cpu_cpu_count(void);
+
+#endif
 
 #endif

@@ -1,6 +1,8 @@
 #ifndef ASM_IRQFLAGS_H
 #define ASM_IRQFLAGS_H
 
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
+
 #include <stdint.h>
 
 #include <compiler/attributes.h>
@@ -43,5 +45,7 @@ static __always_inline uint32_t local_irq_save(void)
   local_irq_disable();
   return flags;
 }
+
+#endif
 
 #endif

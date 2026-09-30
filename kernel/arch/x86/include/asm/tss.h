@@ -1,9 +1,9 @@
 #ifndef ASM_TSS_H
 #define ASM_TSS_H
 
-#include <compiler/attributes.h>
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
 
-#ifndef __ASSEMBLER__
+#include <compiler/attributes.h>
 
 #include <stdint.h>
 

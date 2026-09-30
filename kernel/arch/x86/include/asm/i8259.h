@@ -1,5 +1,5 @@
-#ifndef I8259_H
-#define I8259_H
+#ifndef ASM_I8259_H
+#define ASM_I8259_H
 
 #define PIC1 0x20 /* IO base address for master PIC */
 #define PIC2 0xA0 /* IO base address for slave PIC */
@@ -27,8 +27,12 @@
 
 #define PIC_EOI 0x20
 
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
+
 #include <kernel/irq.h>
 
 extern const irq_chip_t legacy_pic;
+
+#endif
 
 #endif

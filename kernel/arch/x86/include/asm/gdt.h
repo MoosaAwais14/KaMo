@@ -1,13 +1,12 @@
 #ifndef ASM_GDT_H
 #define ASM_GDT_H
 
-#include <compiler/attributes.h>
-
 #define GDT_SELECTOR(index, rpl)  \
   ((index << 3) | (rpl & 0x3))
 
-#ifndef __ASSEMBLER__
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
 
+#include <compiler/attributes.h>
 #include <stdint.h>
 
 typedef struct gdt_entry_s {

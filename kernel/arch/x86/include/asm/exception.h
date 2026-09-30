@@ -1,6 +1,8 @@
 #ifndef ASM_EXCEPTION_H
 #define ASM_EXCEPTION_H
 
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
+
 #include <kernel/interrupt.h>
 
 #include <locking/spinlock.h>
@@ -21,5 +23,7 @@ typedef struct exception_desc_s {
 extern void arch_exception_early_init(void);
 
 extern void arch_exception_dispatch(interrupt_context_t* context);
+
+#endif
 
 #endif

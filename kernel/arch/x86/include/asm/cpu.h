@@ -1,6 +1,8 @@
 #ifndef ASM_CPU_H
 #define ASM_CPU_H
 
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
+
 #include <stdint.h>
 #include <compiler/attributes.h>
 #include <asm/irqflags.h>
@@ -24,5 +26,7 @@ static __always_inline __noreturn void local_safe_halt(void)
     local_halt();
   }
 }
+
+#endif
 
 #endif

@@ -1,6 +1,8 @@
 #ifndef ASM_PAGING_H
 #define ASM_PAGING_H
 
+#if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
+
 #include <stdint.h>
 
 #include <asm/page.h>
@@ -71,5 +73,7 @@ typedef struct page_directory_s
 {
   page_directory_entry_t entries[PAGE_DIRECTORY_ENTRIES];
 } page_directory_t;
+
+#endif
 
 #endif
