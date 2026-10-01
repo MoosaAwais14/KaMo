@@ -34,9 +34,9 @@ void arch_exception_dispatch(interrupt_context_t* context)
 
   exception_desc_t* desc = &exception_descs[vector];
 
-  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
   exception_handler_t fn = desc->handler;
-  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
 
   if(fn)
     fn(context->arch);
@@ -48,9 +48,9 @@ static void install_exception_vectors(void)
   {
     exception_desc_t* desc = &exception_descs[vector];
 
-    unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+    unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
     exception_handler_t fn = desc->handler;
-    raw_spin_unlock_irqrestore(&desc->rlock, flags);
+    raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
 
     interrupt_set_type(vector, INTERRUPT_EXCEPTION);
   }

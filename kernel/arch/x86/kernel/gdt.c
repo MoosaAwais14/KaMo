@@ -69,7 +69,7 @@ int gdt_cpu_tss_load(gdt_cpu_t* gdt_cpu)
   return 0;
 }
 
-int gdt_cpu_tss_set_kernel_stack(gdt_cpu_t* gdt_cpu, uintptr_t stack)
+int gdt_cpu_tss_set_kernel_stack(gdt_cpu_t* gdt_cpu, virt_addr_t stack)
 {
   if(!gdt_cpu)
     return - 1;

@@ -14,8 +14,15 @@ LOAD_PHYSICAL_ADDR = __LOAD_PHYSICAL_ADDR;
 #define PAGE_OFFSET   (__PAGE_OFFSET)
 
 #ifndef __ASSEMBLER__
-#define __va(x)		    ((void*)((unsigned long)(x) + PAGE_OFFSET))
-#define __pa(x)       ((void*)((unsigned long)(x) - PAGE_OFFSET))
+
+#include <kernel/address.h>
+
+#define ___va(x)       ((virt_addr_t)((phys_addr_t)(x) + PAGE_OFFSET))
+#define ___pa(x)       ((phys_addr_t)((virt_addr_t)(x) - PAGE_OFFSET))
+
+#define __va(x)        ((void*)___va(x))
+#define __pa(x)        (___pa(x))
+
 #endif
 
 #endif

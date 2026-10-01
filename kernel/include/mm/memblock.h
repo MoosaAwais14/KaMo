@@ -12,11 +12,20 @@ typedef enum memblock_err_e {
   MEMBLOCK_ERR_EARLYBUMP,
 } memblock_err_t;
 
+typedef struct {
+  void* node;
+} memblock_iter_t;
+
 extern memblock_err_t memblock_init(void);
+
 extern memblock_err_t memblock_add(range_t physical_range);
 extern memblock_err_t memblock_reserve(range_t physical_range);
-extern void* memblock_alloc(size_t size);
-extern uintptr_t memblock_start(void);
-extern uintptr_t memblock_end(void);
+
+extern memblock_err_t memblock_memory_first(memblock_iter_t *iter, range_t *out);
+extern memblock_err_t memblock_memory_next(memblock_iter_t *iter, range_t *out);
+
+extern memblock_err_t memblock_reserved_first(memblock_iter_t *iter, range_t *out);
+extern memblock_err_t memblock_reserved_next(memblock_iter_t *iter, range_t *out);
+
 
 #endif

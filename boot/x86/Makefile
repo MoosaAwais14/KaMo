@@ -18,7 +18,8 @@ COMMON_FLAGS := \
 	$(INCLUDE_FLAGS)
 
 CFLAGS := \
-	$(CFLAGS) \
+	$(CFLAGS) 								\
+	-Wno-pointer-to-int-cast	\
 	$(INCLUDE_FLAGS)
 
 ASFLAGS := \

@@ -31,6 +31,7 @@
 
 #include <asm/tss.h>
 #include <compiler/attributes.h>
+#include <kernel/address.h>
 
 typedef struct gdt_cpu_s {
   gdt_entry_t entries[GDT_ENTRY_COUNT];
@@ -45,7 +46,7 @@ extern void gdt_cpu_reload_kernel_segments(void);
 
 extern int gdt_cpu_tss_init(gdt_cpu_t* gdt_cpu);
 extern int gdt_cpu_tss_load(gdt_cpu_t* gdt_cpu);
-extern int gdt_cpu_tss_set_kernel_stack(gdt_cpu_t* gdt_cpu, uintptr_t stack);
+extern int gdt_cpu_tss_set_kernel_stack(gdt_cpu_t* gdt_cpu, virt_addr_t stack);
 
 #endif
 

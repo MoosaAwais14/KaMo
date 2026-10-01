@@ -50,13 +50,12 @@ SECTIONS
   {
     _sdata = .;
 
-    *(.data*)
-
-    . = ALIGN(4K);
     __stack_bottom = .;
     . += KERNEL_STACK_SIZE;
     . = ALIGN(KERNEL_STACK_ALIGN);
     __stack_top = .;
+
+    *(.data*)
   }
   _edata = .;
 

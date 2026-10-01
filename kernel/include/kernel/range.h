@@ -1,11 +1,11 @@
 #ifndef KERNEL_RANGE_H
 #define KERNEL_RANGE_H
 
-#include <stdint.h>
+#include <kernel/address.h>
 
 typedef struct range_s {
-  uint64_t start;
-  uint64_t end;
+  addr_t start;
+  addr_t end;
 } range_t;
 
 static inline uint64_t range_len(const range_t* r1)

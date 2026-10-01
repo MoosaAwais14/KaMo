@@ -7,8 +7,14 @@
 
 #include <asm/page.h>
 
+#include <compiler/attributes.h>
+
 #define PAGE_TABLE_ENTRIES      1024
 #define PAGE_DIRECTORY_ENTRIES  1024
+#define PAGE_SHIFT              12
+#define PAGE_SHIFT_HUGE         22
+#define PAGE_SIZE               (1ul << PAGE_SHIFT) 
+#define PAGE_ALIGN              (1ul << PAGE_SHIFT)
 
 struct page_directory_entry_ps0_s {
   uint32_t present      : 1;
@@ -67,12 +73,16 @@ typedef union {
 typedef struct page_table_s
 {
   page_table_entry_t pages[PAGE_TABLE_ENTRIES];
-} page_table_t;
+} page_table_t __aligned(PAGE_ALIGN);
 
 typedef struct page_directory_s
 {
   page_directory_entry_t entries[PAGE_DIRECTORY_ENTRIES];
-} page_directory_t;
+} page_directory_t __aligned(PAGE_ALIGN);
+
+#define PD_INDEX(virt)  ((virt) >> PAGE_SHIFT_HUGE)
+#define PT_INDEX(virt)  (((virt) >> PAGE_SHIFT) & (PAGE_TABLE_ENTRIES - 1))
+#define PAGE_TABLE(pde) (((page_directory_entry_t*)pde)->ps0.frame << PAGE_SHIFT)
 
 #endif
 

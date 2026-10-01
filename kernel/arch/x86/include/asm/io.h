@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include <compiler/attributes.h>
+#include <kernel/address.h>
 
 static __always_inline uint8_t inb(uint16_t port)
 {
@@ -41,35 +42,35 @@ static __always_inline void outl(uint16_t port, uint32_t data) {
   __asm__ volatile ("outl %1, %0" :: "dN"(port), "a"(data) : "memory");
 }
 
-static __always_inline void writeb(uintptr_t addr, uint8_t val) {
+static __always_inline void writeb(virt_addr_t addr, uint8_t val) {
   *(volatile uint8_t*)addr = val;
 }
 
-static __always_inline uint8_t readb(uintptr_t addr) {
+static __always_inline uint8_t readb(virt_addr_t addr) {
   return *(volatile uint8_t*)addr;
 }
 
-static __always_inline void writew(uintptr_t addr, uint16_t val) {
+static __always_inline void writew(virt_addr_t addr, uint16_t val) {
   *(volatile uint16_t*)addr = val;
 }
 
-static __always_inline uint16_t readw(uintptr_t addr) {
+static __always_inline uint16_t readw(virt_addr_t addr) {
   return *(volatile uint16_t*)addr;
 }
 
-static __always_inline void writel(uintptr_t addr, uint32_t val) {
+static __always_inline void writel(virt_addr_t addr, uint32_t val) {
   *(volatile uint32_t*)addr = val;
 }
 
-static __always_inline uint32_t readl(uintptr_t addr) {
+static __always_inline uint32_t readl(virt_addr_t addr) {
   return *(volatile uint32_t*)addr;
 }
 
-static __always_inline void writeq(uintptr_t addr, uint64_t val) {
+static __always_inline void writeq(virt_addr_t addr, uint64_t val) {
   *(volatile uint64_t*)addr = val;
 }
 
-static __always_inline uint64_t readq(uintptr_t addr) {
+static __always_inline uint64_t readq(virt_addr_t addr) {
   return *(volatile uint64_t*)addr;
 }
 

@@ -4,6 +4,7 @@
 #if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
 
 #include <kernel/cpu.h>
+#include <kernel/address.h>
 
 #include <asm/gdt_arch.h>
 #include <asm/idt_arch.h>
@@ -12,8 +13,8 @@ typedef struct arch_cpu_s {
   gdt_cpu_t gdt;
   idt_cpu_t idt;
 
-  uintptr_t kernel_stack_base;
-  uintptr_t kernel_stack;
+  virt_addr_t kernel_stack_base;
+  virt_addr_t kernel_stack;
 } arch_cpu_t;
 
 typedef uint32_t (*arch_cpu_current_id_fn_t)(void);

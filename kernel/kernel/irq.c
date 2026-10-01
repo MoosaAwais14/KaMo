@@ -31,9 +31,9 @@ int irq_set_vector(uint32_t irq, uint32_t vector)
 
   irq_desc_t* desc = &irq_descs[irq];
 
-  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
   desc->vector = vector;
-  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
 
   return 0;
 }
@@ -45,9 +45,9 @@ int irq_set_chip(uint32_t irq, const irq_chip_t *chip)
 
   irq_desc_t* desc = &irq_descs[irq];
 
-  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
   desc->chip = chip;
-  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
 
   return 0;
 }
@@ -59,17 +59,17 @@ int irq_set_flags(uint32_t irq, irq_flags_t flags)
 
   irq_desc_t* desc = &irq_descs[irq];
 
-  unsigned long f = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
 
   desc->flags = flags;
 
   if (desc->chip && desc->chip->configure){
     int ret = desc->chip->configure(irq, flags);
-    raw_spin_unlock_irqrestore(&desc->rlock, f);
+    raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
     return ret;
   }
 
-  raw_spin_unlock_irqrestore(&desc->rlock, f);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
   return 0;
 }
 
@@ -80,9 +80,9 @@ int irq_register(uint32_t irq, irq_handler_t handler)
 
   irq_desc_t* desc = &irq_descs[irq];
 
-  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
   desc->handler = handler;
-  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
 
   return 0;
 }
@@ -94,9 +94,9 @@ int irq_unregister(uint32_t irq)
 
   irq_desc_t* desc = &irq_descs[irq];
 
-  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
   desc->handler = NULL;
-  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
 
   return 0;
 }
@@ -108,10 +108,10 @@ int irq_register_action(uint32_t irq, irq_action_t action, void* arg)
 
   irq_desc_t* desc = &irq_descs[irq];
 
-  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
   desc->action = action;
   desc->arg = arg;
-  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
 
   return 0;
 
@@ -124,10 +124,10 @@ int irq_unregister_action(uint32_t irq)
 
   irq_desc_t* desc = &irq_descs[irq];
 
-  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
   desc->action = NULL;
   desc->arg = NULL;
-  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
 
   return 0;
 }
@@ -139,10 +139,10 @@ int irq_enable(uint32_t irq)
 
   irq_desc_t* desc = &irq_descs[irq];
 
-  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
 
   if (!desc->chip){
-    raw_spin_unlock_irqrestore(&desc->rlock, flags);
+    raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
     return 1;
   }
 
@@ -151,7 +151,7 @@ int irq_enable(uint32_t irq)
 
   desc->enabled = 1;
 
-  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
   return 0;
 }
 
@@ -162,10 +162,10 @@ int irq_disable(uint32_t irq)
 
   irq_desc_t* desc = &irq_descs[irq];
 
-  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
 
   if (!desc->chip){
-    raw_spin_unlock_irqrestore(&desc->rlock, flags);
+    raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
 
     return 1;
   }
@@ -175,7 +175,7 @@ int irq_disable(uint32_t irq)
 
   desc->enabled = 0;
 
-  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
   return 0;
 }
 
@@ -186,9 +186,9 @@ void irq_dispatch(uint32_t irq)
 
   irq_desc_t* desc = &irq_descs[irq];
 
-  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
   irq_handler_t handler = desc->handler;
-  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
 
   if (handler) {
     handler(desc);
@@ -202,11 +202,11 @@ uint32_t irq_get_vector(uint32_t irq)
 
   irq_desc_t* desc = &irq_descs[irq];
 
-  unsigned long flags = raw_spin_lock_irqsave(&desc->rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
 
   uint32_t vector = desc->vector;
 
-  raw_spin_unlock_irqrestore(&desc->rlock, flags);
+  raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
 
   return vector;
 }

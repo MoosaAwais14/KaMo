@@ -10,7 +10,7 @@ static raw_spinlock_t rlock = RAW_SPINLOCK_UNLOCKED;
 
 static int legacy_init(void* __unused__)
 {
-  unsigned long flags = raw_spin_lock_irqsave(&rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&rlock);
   outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
   io_wait();
   outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
@@ -34,16 +34,16 @@ static int legacy_init(void* __unused__)
   outb(PIC1_DATA, 0xFF);
   outb(PIC2_DATA, 0xFF);
 
-  raw_spin_unlock_irqrestore(&rlock, flags);
+  raw_spin_unlock_irqrestore(&rlock, irq_flags);
   return 0;
 }
 
 static void legacy_shutdown(void)
 {
-  unsigned long flags = raw_spin_lock_irqsave(&rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&rlock);
   outb(PIC1_DATA, 0xFF);
   outb(PIC2_DATA, 0xFF);
-  raw_spin_unlock_irqrestore(&rlock, flags);
+  raw_spin_unlock_irqrestore(&rlock, irq_flags);
 }
 
 static int legacy_configure(uint32_t irq, irq_flags_t flags)
@@ -53,34 +53,34 @@ static int legacy_configure(uint32_t irq, irq_flags_t flags)
 
 static int legacy_mask(uint32_t irq)
 {
-  unsigned long flags = raw_spin_lock_irqsave(&rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&rlock);
   uint16_t port = (irq < 8) ? PIC1_DATA : PIC2_DATA;
   uint8_t value = inb(port) | (1 << (irq % 8));
   outb(port, value);
-  raw_spin_unlock_irqrestore(&rlock, flags);
+  raw_spin_unlock_irqrestore(&rlock, irq_flags);
   return 0;
 }
 
 static int legacy_unmask(uint32_t irq)
 {
-  unsigned long flags = raw_spin_lock_irqsave(&rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&rlock);
   uint16_t port = (irq < 8) ? PIC1_DATA : PIC2_DATA;
   uint8_t value = inb(port) & ~(1 << (irq % 8));
   outb(port, value);
-  raw_spin_unlock_irqrestore(&rlock, flags);
+  raw_spin_unlock_irqrestore(&rlock, irq_flags);
   return 0;
 }
 
 static void legacy_eoi(uint32_t irq)
 {
-  unsigned long flags = raw_spin_lock_irqsave(&rlock);
+  unsigned long irq_flags = raw_spin_lock_irqsave(&rlock);
   if (irq >= 8)
   {
     outb(PIC2_COMMAND, PIC_EOI);
   }
 
   outb(PIC1_COMMAND, PIC_EOI);
-  raw_spin_unlock_irqrestore(&rlock, flags);
+  raw_spin_unlock_irqrestore(&rlock, irq_flags);
 }
 
 static inline void io_wait(void)

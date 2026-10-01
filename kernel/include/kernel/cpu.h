@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <mm/mm.h>
+
 #include <compiler/attributes.h>
 
 #define CPU_MAX 64 
@@ -12,7 +14,7 @@ typedef struct cpu_s {
   uint32_t id;
   uint8_t online;
   size_t preempt_count;
-
+  mm_t mm;
   void* arch_priv;
 } __aligned(64) cpu_t;
 
@@ -20,7 +22,7 @@ extern cpu_t* cpu_current(void);
 extern cpu_t* cpu_get(uint32_t id);
 
 extern int cpu_early_init(uint32_t id);
-extern int cpu_init(uint32_t id);
+extern int cpu_init(uint32_t id, const mm_t* mm);
 
 // TODO: place preempt stuff in a different file
 //

@@ -5,10 +5,12 @@ ifndef OUT
 $(error OUT is required. Usage: make ... OUT=<dir>)
 endif
 
-SOURCES := 		\
-	earlybump.c	\
-	memblock.c	\
-	pmm.c 			
+SOURCES := 			\
+	earlybump.c		\
+	memblock.c		\
+	frame_alloc.c	\
+	mmu.c			\
+	vma.c
 
 OBJECTS := $(SOURCES:%=$(OUT)/%.o)
 

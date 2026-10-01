@@ -1,5 +1,6 @@
 #include <mm/earlybump.h>
 
+#include <kernel/address.h>
 #include <compiler/attributes.h>
 #include <lib/sizes.h>
 
@@ -41,7 +42,7 @@ void* earlybump_alloc(size_t size, size_t aligned)
     return NULL;
   }
 
-  uint8_t* target = (uint8_t*)ALIGN_UP((uintptr_t)earlybump.brk, aligned);
+  uint8_t* target = (uint8_t*)ALIGN_UP((addr_t)earlybump.brk, aligned);
   uint8_t* target_end = (target + size);
 
   if(target_end > earlybump.brk_limit)

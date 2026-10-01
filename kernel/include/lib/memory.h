@@ -8,6 +8,7 @@
 
 #define ALIGN_UP(num, alignment)    (((num) + (alignment - 1)) & ~(alignment - 1))
 #define ALIGN_DOWN(num, alignment)  ((num) & ~(alignment - 1))
+#define IS_ALIGNED(num, alignment)  (((num) % (alignment) == 0) ? 1 : 0)
 
 static __always_inline void *memcpy(void *restrict dest, const void *restrict src, size_t count)
 {

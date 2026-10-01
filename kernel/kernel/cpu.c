@@ -29,6 +29,8 @@ int cpu_early_init(uint32_t id)
   if (cpu->arch_priv)
     return 1;
 
+  memset(cpu, 0, sizeof(cpu_t));
+
   cpu->id = id;
   cpu->online = 0;
   cpu->preempt_count = 0;
@@ -36,14 +38,14 @@ int cpu_early_init(uint32_t id)
   return arch_percpu_early_init(cpu);
 }
 
-int cpu_init(uint32_t id)
+int cpu_init(uint32_t id, const mm_t* mm)
 {
   if (id >= CPU_MAX)
     return 1;
 
   cpu_t *cpu = &cpus[id];
 
-  if(!cpu->arch_priv || cpu->id != id)
+  if(!cpu->arch_priv || cpu->id != id || !mm)
     return 2;
 
   if(cpu->online)
@@ -53,6 +55,8 @@ int cpu_init(uint32_t id)
     return 4;
 
   cpu->online = 1;
+  
+  memcpy(&cpu->mm, mm, sizeof(mm_t));
 
   return 0;
 }

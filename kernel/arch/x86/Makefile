@@ -5,18 +5,19 @@ ifndef OUT
 $(error OUT is required. Usage: make ... OUT=<dir>)
 endif
 
-SOURCES := \
-	kernel/setup.c \
-	kernel/setup.S \
-	kernel/cpu.c \
-	kernel/gdt.c \
-	kernel/idt.S \
-	kernel/idt.c \
-	kernel/irq.c \
-	kernel/irqchip.c \
-	kernel/i8259.c \
-	kernel/exception.c \
-	locking/spinlock.c
+SOURCES := 						\
+	kernel/setup.c 			\
+	kernel/setup.S 			\
+	kernel/cpu.c 				\
+	kernel/gdt.c 				\
+	kernel/idt.S 				\
+	kernel/idt.c 				\
+	kernel/irq.c 				\
+	kernel/irqchip.c 		\
+	kernel/i8259.c 			\
+	kernel/exception.c 	\
+	locking/spinlock.c 	\
+	mm/mmu.c
 
 OBJECTS := $(SOURCES:%=$(OUT)/%.o)
 
