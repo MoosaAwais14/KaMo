@@ -47,7 +47,7 @@ int rb_tree_insert(rb_tree_t* tree, rb_tree_node_t* node)
       current = current->left;
     }
     else
-    {
+  {
       current = current->right;
     }
   }
@@ -63,7 +63,7 @@ int rb_tree_insert(rb_tree_t* tree, rb_tree_node_t* node)
     parent->left = node;
   }
   else
-  {
+{
     parent->right = node;
   }
   rb_fix_insert(tree, node);
@@ -108,7 +108,7 @@ int rb_tree_remove(rb_tree_t* tree, rb_tree_node_t* node)
     rb_transplant(tree, node, node->left);
   }
   else
-  {
+{
     moved_node = rb_tree_minimum(tree, node->right);
     moved_color = moved_node->color;
     replacement = moved_node->right;
@@ -118,7 +118,7 @@ int rb_tree_remove(rb_tree_t* tree, rb_tree_node_t* node)
       replacement->parent = moved_node;
     }
     else
-    {
+  {
       rb_transplant(tree, moved_node, moved_node->right);
       moved_node->right = node->right;
       moved_node->right->parent = moved_node;
@@ -137,7 +137,9 @@ int rb_tree_remove(rb_tree_t* tree, rb_tree_node_t* node)
   node->right = NULL;
   node->parent = NULL;
   node->color = RB_BLACK;
-  tree->NIL->parent = tree->NIL->parent;
+
+  tree->NIL->parent = tree->NIL;
+
   return 0;
 }
 
@@ -230,7 +232,7 @@ static void rb_fix_remove(rb_tree_t* tree, rb_tree_node_t* node)
         node = node->parent;
       }
       else
-      {
+    {
         if (sibling->right->color == RB_BLACK)
         {
           sibling->left->color = RB_BLACK;
@@ -247,7 +249,7 @@ static void rb_fix_remove(rb_tree_t* tree, rb_tree_node_t* node)
       }
     }
     else
-    {
+  {
       rb_tree_node_t* sibling = node->parent->left;
 
       if (sibling->color == RB_RED)
@@ -264,7 +266,7 @@ static void rb_fix_remove(rb_tree_t* tree, rb_tree_node_t* node)
         node = node->parent;
       }
       else
-      {
+    {
         if (sibling->left->color == RB_BLACK)
         {
           sibling->right->color = RB_BLACK;
@@ -301,7 +303,7 @@ static void rb_fix_insert(rb_tree_t* tree, rb_tree_node_t* node)
         node = node->parent->parent;
       } 
       else 
-      {
+    {
         if (node == node->parent->right) 
         {       
           node = node->parent;
@@ -313,7 +315,7 @@ static void rb_fix_insert(rb_tree_t* tree, rb_tree_node_t* node)
       }
     }
     else 
-    {                                   
+  {                                   
       rb_tree_node_t* uncle = node->parent->parent->left;
 
       if (uncle->color == RB_RED) 
@@ -324,7 +326,7 @@ static void rb_fix_insert(rb_tree_t* tree, rb_tree_node_t* node)
         node = node->parent->parent;
       } 
       else 
-      {
+    {
         if (node == node->parent->left)
         {
           node = node->parent;
@@ -360,7 +362,7 @@ static void rb_rotate_left(rb_tree_t* tree, rb_tree_node_t* node)
     node->parent->left = y;
   }
   else                          
-  {
+{
     node->parent->right = y;
   }
 
@@ -389,7 +391,7 @@ static void rb_rotate_right(rb_tree_t* tree, rb_tree_node_t* node)
     node->parent->right = y;
   }
   else                           
-  {
+{
     node->parent->left = y;
   }
 

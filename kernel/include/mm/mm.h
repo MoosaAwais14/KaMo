@@ -6,10 +6,9 @@
 #include <mm/vma.h>
 #include <mm/mmu.h>
 
-typedef struct mm_s {
-    struct mmu_space_s* active_mmu;
-    struct vma_space_s* active_vma;
-    range_t fixmap_range;
-} mm_t;
+typedef struct mm_space_s {
+  struct mmu_space_s* mmu;
+  struct vma_space_s* vma;
+} mm_space_t;
 
 #endif

@@ -41,6 +41,23 @@ static __always_inline phys_addr_t read_cr3(void)
   return value;
 }
 
+static __always_inline uint32_t read_cr4(void)
+{
+  uint32_t value;
+  __asm__ volatile("mov %%cr4, %0" : "=r"(value) :: "memory");
+  return value;
+}
+
+static __always_inline void write_cr4(uint32_t value)
+{
+  __asm__ volatile("mov %0, %%cr4" :: "r"(value) : "memory");
+}
+
+static __always_inline void invlpg(virt_addr_t vaddr)
+{
+  __asm__ volatile("invlpg (%0)" :: "r"(vaddr) : "memory");
+}
+
 #endif
 
 #endif

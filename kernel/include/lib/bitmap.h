@@ -61,19 +61,19 @@ static inline void bitmap_set_bit_count(bitmap_t *bitmap, size_t bit_count)
 static inline void bitmap_set_bit(bitmap_t *bitmap, size_t bit)
 {
     bitmap->array[BITMAP_WORD_INDEX(bit)] |=
-        (1u << BITMAP_BIT_OFFSET(bit));
+        (1ul << BITMAP_BIT_OFFSET(bit));
 }
 
 static inline void bitmap_clear_bit(bitmap_t *bitmap, size_t bit)
 {
     bitmap->array[BITMAP_WORD_INDEX(bit)] &=
-        ~(1u << BITMAP_BIT_OFFSET(bit));
+        ~(1ul << BITMAP_BIT_OFFSET(bit));
 }
 
 static inline int bitmap_test_bit(bitmap_t *bitmap, size_t bit)
 {
     return (bitmap->array[BITMAP_WORD_INDEX(bit)] >>
-            BITMAP_BIT_OFFSET(bit)) & 1u;
+            BITMAP_BIT_OFFSET(bit)) & 1ul;
 }
 
 static inline void bitmap_clear(bitmap_t *bitmap)

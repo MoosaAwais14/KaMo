@@ -11,8 +11,11 @@ typedef struct mmu_space_s {
   uint8_t is_kernel;
 } mmu_space_t;
 
-extern mmu_err_t arch_mmu_early_init(struct mmu_space_s* space);
-extern mmu_err_t arch_mmu_patch_early_init(struct mmu_space_s* space, const mmu_alloc_ops_t* new_alloc_ops);
+extern mmu_err_t arch_mmu_init(struct mmu_space_s* space);
+extern mmu_err_t arch_mmu_preallocate_page_table(struct mmu_space_s* space, virt_addr_t vaddr);
 extern mmu_err_t arch_mmu_map(struct mmu_space_s* space, virt_addr_t vaddr, phys_addr_t paddr, size_t size, mmu_flags_t flags);
+extern mmu_err_t arch_mmu_unmap(struct mmu_space_s* space, virt_addr_t vaddr, size_t size);
+extern mmu_err_t arch_mmu_tlb_invalidate_page(struct mmu_space_s* space, virt_addr_t vaddr);
+extern mmu_err_t arch_mmu_tlb_flush(struct mmu_space_s* space);
 
 #endif

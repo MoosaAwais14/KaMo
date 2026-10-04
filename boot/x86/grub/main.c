@@ -43,17 +43,17 @@ void grub2_start(uint32_t magic, uint32_t ptr)
         const boot_info_memory_map_entry_t *entry = &grub2_boot_info.memory_map.map[i];
 
         puts("  [");
-        print_hex64(entry->start_address);
+        print_hex64(entry->phys_range.start);
 
         puts(" - ");
-        print_hex64(entry->end_address);
+        print_hex64(entry->phys_range.end);
 
         puts("] ");
 
-        if (entry->ok)
-            puts("OK\n");
+        if (entry->type == BOOT_INFO_MEMORY_TYPE_USABLE)
+            puts("USABLE\n");
         else
-            puts("BAD\n");
+            puts("UNUSABLE\n");
     }
   }
 

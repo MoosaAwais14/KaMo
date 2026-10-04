@@ -3,7 +3,9 @@
 
 #if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
 
-#define MEMBLOCK_SIZE_SHIFT   12
+#include <asm/paging.h>
+
+#define MEMBLOCK_SIZE_SHIFT   PAGE_SHIFT
 #define MEMBLOCK_SIZE         (1UL << MEMBLOCK_SIZE_SHIFT)
 
 #endif

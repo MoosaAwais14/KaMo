@@ -3,7 +3,9 @@
 
 #if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
 
-#define VMA_SIZE_SHIFT   12
+#include <asm/paging.h>
+
+#define VMA_SIZE_SHIFT   PAGE_SHIFT
 #define VMA_SIZE         (1UL << VMA_SIZE_SHIFT)
 
 #endif

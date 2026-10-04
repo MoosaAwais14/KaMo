@@ -17,7 +17,8 @@ SOURCES := 						\
 	kernel/i8259.c 			\
 	kernel/exception.c 	\
 	locking/spinlock.c 	\
-	mm/mmu.c
+	mm/mmu.c						\
+	mm/fixmap.c
 
 OBJECTS := $(SOURCES:%=$(OUT)/%.o)
 

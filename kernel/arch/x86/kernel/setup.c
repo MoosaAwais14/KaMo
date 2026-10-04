@@ -7,6 +7,7 @@
 #include <asm/sizes.h>
 #include <asm/paging.h>
 #include <asm/page.h>
+#include <asm/fixmap.h>
 #include <asm/mmu.h>
 #include <asm/vma.h>
 #include <asm-generic/sections.h>
@@ -20,24 +21,26 @@
 #include <mm/mmu.h>
 #include <mm/vma.h>
 #include <mm/memblock.h>
-#include <mm/frame_alloc.h>
+#include <mm/page_alloc.h>
 
-static phys_addr_t mmu_bootstrap_alloc_frame(void* __unused__);
-static void mmu_bootstrap_free_frame(void* __unused0__, phys_addr_t __unused1__);
+#include <lib/string.h>
+
+static mmu_err_t mmu_bootstrap_alloc_page(void* __unused__, phys_addr_t* out);
+static void mmu_bootstrap_free_page(void* __unused__, phys_addr_t paddr);
 
 static virt_addr_t vma_bootstrap_alloc(void* __unused__, size_t size, size_t aligned);
 static void vma_bootstrap_free(void* __unused0__, virt_addr_t __unused1__);
 
 static void setup_bootstrap_paging(void);
 static void setup_boot_reserves(void);
-static void setup_kernel_reserves(void);
+static int setup_kernel_reserves(void);
 static virt_addr_t setup_bsp_stack(void);
 
 extern void __noreturn arch_switch_stack_to_continue(uint32_t new_stack);
 
 static const mmu_alloc_ops_t mmu_ops = {
-  .alloc_frame = mmu_bootstrap_alloc_frame,
-  .free_frame = mmu_bootstrap_free_frame,
+  .alloc_page = mmu_bootstrap_alloc_page,
+  .release_page = mmu_bootstrap_free_page,
   .ctx = NULL
 };
 
@@ -49,7 +52,10 @@ static const vma_alloc_ops_t vma_ops = {
 
 mmu_space_t kernel_pg_space =  { };
 vma_space_t kernel_vma_space = { };
-mm_t* kernel_mm = &(mm_t){ .active_mmu = &kernel_pg_space, .active_vma = &kernel_vma_space };
+mm_space_t kernel_mm = {
+  .mmu = &kernel_pg_space,
+  .vma = &kernel_vma_space
+};
 
 void __noreturn setup_arch(void)
 {
@@ -82,8 +88,15 @@ void __noreturn continue_setup_arch(void)
     }, 0) != VMA_OK)
     local_safe_halt();
   
+  if (vma_reserve(&kernel_vma_space, (range_t) {
+      .start = FIXMAP_BASE,
+      .end = FIXMAP_BASE + FIXMAP_WINDOW_SIZE - 1
+    }, 0) != VMA_OK)
+    local_safe_halt();
+
   setup_boot_reserves();
-  setup_kernel_reserves();
+  if (setup_kernel_reserves() != 0)
+    local_safe_halt();
 
   interrupt_init();
   {
@@ -92,21 +105,20 @@ void __noreturn continue_setup_arch(void)
 
   kernel_pg_space.cr3 = ___pa(&kernel_pg_space.page_directory);
   kernel_pg_space.is_kernel = 1;
-  if (mmu_early_init(&kernel_pg_space, &mmu_ops) != MMU_OK)
+  if (mmu_init(&kernel_pg_space, &mmu_ops) != MMU_OK)
+    local_safe_halt();
+  if (arch_fixmap_early_init(&kernel_pg_space) != MMU_OK)
     local_safe_halt();
 
-  cpu_init(0, kernel_mm);
+  cpu_init(0, &kernel_mm);
 
-  // setup_bootstrap_paging();
-
+  setup_bootstrap_paging();
+  
   // patch allocators for mm
 
   irq_init();
 
   // arch_exception_init(); // Update "early" exception vectors with proper handling
-
-  if (frame_alloc_init() != FRAME_ALLOC_OK)
-    local_safe_halt();
 
   earlybump_disable();
   continue_start_kernel();
@@ -114,8 +126,41 @@ void __noreturn continue_setup_arch(void)
 
 static void setup_bootstrap_paging(void)
 {
-  // do kernel mappings
-  // do heap/slab mappings
+  memblock_iter_t iter = { NULL };
+  range_t memory;
+
+  if (memblock_memory_first(&iter, &memory) != MEMBLOCK_OK)
+    local_safe_halt();
+
+  do 
+  {
+    if (memory.start >= PHYS_DIRECT_MAP_LIMIT)
+      continue;
+
+    const phys_addr_t start = ALIGN_UP(memory.start, PAGE_SIZE);
+    const phys_addr_t end = memory.end >= PHYS_DIRECT_MAP_LIMIT ? PHYS_DIRECT_MAP_LIMIT : ALIGN_DOWN(memory.end + 1, PAGE_SIZE);
+
+    if (start >= end)
+      continue;
+
+    if (mmu_map(&kernel_pg_space, PAGE_OFFSET + start, start, end - start, MMU_FLAG_WRITE) != MMU_OK)
+      local_safe_halt();
+
+  } while (memblock_memory_next(&iter, &memory) == MEMBLOCK_OK);
+
+  range_t kernel_vma_ranges[] = {
+    { .start = ALIGN_DOWN((addr_t)_stext, PAGE_SIZE), .end = ALIGN_UP((addr_t)_etext, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_srodata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_erodata, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_sdata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_edata, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_sbss, PAGE_SIZE), .end = ALIGN_UP((addr_t)_ebss, PAGE_SIZE) - 1 },
+  };
+
+  for (size_t i = 0; i < sizeof(kernel_vma_ranges) / sizeof(kernel_vma_ranges[0]); i++)
+  {
+    if (mmu_map(&kernel_pg_space, kernel_vma_ranges[i].start, ___pa(kernel_vma_ranges[i].start), (kernel_vma_ranges[i].end - kernel_vma_ranges[i].start) + 1, MMU_FLAG_WRITE) != MMU_OK)
+      local_safe_halt();
+  }
+
   load_cr3(kernel_pg_space.cr3);
 }
 
@@ -123,35 +168,41 @@ static void setup_boot_reserves(void)
 {
   for (size_t i = 0; i < kernel_boot_info.memory_map.count; i++) 
   {
-    const boot_info_memory_map_entry_t *e = &kernel_boot_info.memory_map.map[i];
+    const boot_info_memory_map_entry_t *e = &kernel_boot_info.memory_map.map[i]; 
 
-    range_t range = {
-      .start = e->start_address,
-      .end   = e->end_address,
-    };
-
-    if (e->ok)
+    if (e->type == BOOT_INFO_MEMORY_TYPE_USABLE)
     {
-      memblock_add(range);
+      memblock_add(e->phys_range);
     }
     else
     {
-      memblock_reserve(range);
+      memblock_reserve(e->phys_range);
     }
   }
 }
 
-static void setup_kernel_reserves(void)
+static int setup_kernel_reserves(void)
 {
-  memblock_reserve((range_t){ .start = ___pa(_stext),   .end = ___pa(_etext) - 1    });
-  memblock_reserve((range_t){ .start = ___pa(_srodata), .end = ___pa(_erodata) - 1  });
-  memblock_reserve((range_t){ .start = ___pa(_sdata),   .end = ___pa(_edata) - 1    });
-  memblock_reserve((range_t){ .start = ___pa(_sbss),    .end = ___pa(_ebss) - 1     });
+  if (memblock_reserve((range_t) { .start = ___pa(_stext), .end = ___pa(_etext) - 1 }) != MEMBLOCK_OK ||
+      memblock_reserve((range_t) { .start = ___pa(_srodata), .end = ___pa(_erodata) - 1 }) != MEMBLOCK_OK ||
+      memblock_reserve((range_t) { .start = ___pa(_sdata), .end = ___pa(_edata) - 1 }) != MEMBLOCK_OK ||
+      memblock_reserve((range_t) { .start = ___pa(_sbss), .end = ___pa(_ebss) - 1 }) != MEMBLOCK_OK)
+    return -1;
 
-  vma_reserve(&kernel_vma_space, (range_t){ .start = (addr_t)_stext,   .end = (addr_t)_etext -1    }, 0);
-  vma_reserve(&kernel_vma_space, (range_t){ .start = (addr_t)_srodata, .end = (addr_t)_erodata - 1 }, 0);
-  vma_reserve(&kernel_vma_space, (range_t){ .start = (addr_t)_sdata,   .end = (addr_t)_edata - 1   }, 0);
-  vma_reserve(&kernel_vma_space, (range_t){ .start = (addr_t)_sbss,    .end = (addr_t)_ebss - 1    }, 0);
+  range_t kernel_vma_ranges[] = {
+    { .start = ALIGN_DOWN((addr_t)_stext, PAGE_SIZE), .end = ALIGN_UP((addr_t)_etext, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_srodata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_erodata, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_sdata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_edata, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_sbss, PAGE_SIZE), .end = ALIGN_UP((addr_t)_ebss, PAGE_SIZE) - 1 }
+  };
+
+  for (size_t i = 0; i < sizeof(kernel_vma_ranges) / sizeof(kernel_vma_ranges[0]); i++)
+  {
+    if (vma_reserve(&kernel_vma_space, kernel_vma_ranges[i], 0) != VMA_OK)
+      return -1;
+  }
+
+  return 0;
 }
 
 static virt_addr_t setup_bsp_stack(void)
@@ -166,16 +217,27 @@ static virt_addr_t setup_bsp_stack(void)
   return arch_cpu->kernel_stack;
 }
 
-static phys_addr_t mmu_bootstrap_alloc_frame(void* __unused__)
+static mmu_err_t mmu_bootstrap_alloc_page(void* __unused__, phys_addr_t* out)
 {
-  void* frame = earlybump_alloc(PAGE_SIZE, PAGE_ALIGN);
-  if (!frame)
-    return 0;
+  range_t range;
+  if(memblock_alloc(PAGE_SIZE, PAGE_ALIGN, &range) != MEMBLOCK_OK)
+    return MMU_ERR_ALLOCATOR;
 
-  return ___pa(frame);
+  if(range.start >= PHYS_DIRECT_MAP_LIMIT)
+  {
+    memblock_alloc_free(range);
+    return MMU_ERR_ALLOCATOR;
+  }
+
+  *out = range.start;
+  return MMU_OK;
 }
 
-static void mmu_bootstrap_free_frame(void* __unused0__, phys_addr_t __unused1__) { }
+static void mmu_bootstrap_free_page(void* __unused__, phys_addr_t paddr) 
+{
+  range_t range = { .start = paddr, .end = (paddr + PAGE_SIZE) - 1 };
+  memblock_alloc_free(range);
+}
 
 static virt_addr_t vma_bootstrap_alloc(void* __unused__, size_t size, size_t aligned)
 {

@@ -1,13 +1,15 @@
 #ifndef KERNEL_BOOT_INFO_H
 #define KERNEL_BOOT_INFO_H
 
-#include <kernel/address.h>
+#include <kernel/range.h>
 #include <stddef.h>
 
 typedef struct boot_info_memory_map_entry_s {
-  phys_addr_t start_address;
-  phys_addr_t end_address;
-  uint8_t   ok;
+  range_t phys_range;
+#define BOOT_INFO_MEMORY_TYPE_UNKOWN   0
+#define BOOT_INFO_MEMORY_TYPE_USABLE   1
+#define BOOT_INFO_MEMORY_TYPE_RESERVED 2
+  uint8_t type;
 } boot_info_memory_map_entry_t;
 
 typedef struct boot_info_memory_map_s {

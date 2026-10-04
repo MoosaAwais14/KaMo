@@ -17,7 +17,11 @@ typedef struct raw_spinlock_s {
 extern void raw_spin_lock(raw_spinlock_t* lock);
 extern void raw_spin_unlock(raw_spinlock_t* lock);
 
+extern uint8_t raw_spin_trylock(raw_spinlock_t* lock);
+extern uint8_t raw_spinlock_test(raw_spinlock_t* lock);
+
 extern unsigned long raw_spin_lock_irqsave(raw_spinlock_t* lock);
+extern uint8_t raw_spin_trylock_irqsave(raw_spinlock_t* lock, unsigned long* flags);
 extern void raw_spin_unlock_irqrestore(raw_spinlock_t* lock, unsigned long flags);
 
 #endif

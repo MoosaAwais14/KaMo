@@ -3,10 +3,13 @@
 
 #if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
 
-#define FRAME_SIZE_SHIFT   12
-#define FRAME_SIZE         (1UL << FRAME_SIZE_SHIFT)
+#include <asm/paging.h>
+
+#define FRAME_SHIFT       PAGE_SHIFT
+#define MAX_PHYSMEM_BITS  32
+#define SECTION_SHIFT     29
+#define PAGES_PER_SECTION (1ULL << (SECTION_SHIFT - FRAME_SHIFT))
 
 #endif
 
 #endif
-

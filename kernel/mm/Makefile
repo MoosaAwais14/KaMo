@@ -8,8 +8,8 @@ endif
 SOURCES := 			\
 	earlybump.c		\
 	memblock.c		\
-	frame_alloc.c	\
-	mmu.c			\
+	page_alloc.c 	\
+	mmu.c					\
 	vma.c
 
 OBJECTS := $(SOURCES:%=$(OUT)/%.o)

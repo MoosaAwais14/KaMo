@@ -56,9 +56,21 @@ grub_err_t multiboot2_to_boot_info(uint32_t magic, uintptr_t ptr, boot_info_t* b
               length = addressable_length;
 
             boot_info_memory_map_entry_t* e = &boot_info->memory_map.map[boot_info->memory_map.count++];
-            e->start_address = address;
-            e->end_address = address + length - 1;
-            e->ok = (entry->type == MULTIBOOT_MEMORY_AVAILABLE) ? 1 : 0;
+            e->phys_range.start = address;
+            e->phys_range.end = (address + length) - 1;
+
+            if(entry->type == MULTIBOOT_MEMORY_AVAILABLE)
+            {
+              e->type = BOOT_INFO_MEMORY_TYPE_USABLE;
+            }
+            else if(entry->type == MULTIBOOT_MEMORY_RESERVED)
+            {
+              e->type = BOOT_INFO_MEMORY_TYPE_RESERVED;
+            }
+            else
+            {
+              e->type = BOOT_INFO_MEMORY_TYPE_UNKOWN;
+            }
           }
 
           break;
