@@ -77,21 +77,21 @@ void __noreturn continue_setup_arch(void)
   memblock_init();
   vma_set_vma_allocator(&vma_ops);
   if (vma_init(&kernel_vma_space, (range_t) {
-      .start = 0x0000000,
-      .end = UINTPTR_MAX
-    }) != VMA_OK)
+    .start = 0x0000000,
+    .end = UINTPTR_MAX
+  }) != VMA_OK)
     local_safe_halt();
 
   if (vma_reserve(&kernel_vma_space, (range_t) {
-      .start = 0,
-      .end = VMA_SIZE - 1
-    }, 0) != VMA_OK)
+    .start = 0,
+    .end = VMA_SIZE - 1
+  }, 0) != VMA_OK)
     local_safe_halt();
-  
+
   if (vma_reserve(&kernel_vma_space, (range_t) {
-      .start = FIXMAP_BASE,
-      .end = FIXMAP_BASE + FIXMAP_WINDOW_SIZE - 1
-    }, 0) != VMA_OK)
+    .start = FIXMAP_BASE,
+    .end = FIXMAP_BASE + FIXMAP_WINDOW_SIZE - 1
+  }, 0) != VMA_OK)
     local_safe_halt();
 
   setup_boot_reserves();
@@ -113,7 +113,9 @@ void __noreturn continue_setup_arch(void)
   cpu_init(0, &kernel_mm);
 
   setup_bootstrap_paging();
-  
+
+  // page_alloc_init();
+
   // patch allocators for mm
 
   irq_init();
@@ -143,21 +145,28 @@ static void setup_bootstrap_paging(void)
     if (start >= end)
       continue;
 
-    if (mmu_map(&kernel_pg_space, PAGE_OFFSET + start, start, end - start, MMU_FLAG_WRITE) != MMU_OK)
+    if (mmu_map(&kernel_pg_space, PAGE_OFFSET + start, start, end - start, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
       local_safe_halt();
 
   } while (memblock_memory_next(&iter, &memory) == MEMBLOCK_OK);
 
   range_t kernel_vma_ranges[] = {
     { .start = ALIGN_DOWN((addr_t)_stext, PAGE_SIZE), .end = ALIGN_UP((addr_t)_etext, PAGE_SIZE) - 1 },
-    { .start = ALIGN_DOWN((addr_t)_srodata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_erodata, PAGE_SIZE) - 1 },
     { .start = ALIGN_DOWN((addr_t)_sdata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_edata, PAGE_SIZE) - 1 },
     { .start = ALIGN_DOWN((addr_t)_sbss, PAGE_SIZE), .end = ALIGN_UP((addr_t)_ebss, PAGE_SIZE) - 1 },
   };
 
   for (size_t i = 0; i < sizeof(kernel_vma_ranges) / sizeof(kernel_vma_ranges[0]); i++)
   {
-    if (mmu_map(&kernel_pg_space, kernel_vma_ranges[i].start, ___pa(kernel_vma_ranges[i].start), (kernel_vma_ranges[i].end - kernel_vma_ranges[i].start) + 1, MMU_FLAG_WRITE) != MMU_OK)
+    if (mmu_map(&kernel_pg_space, kernel_vma_ranges[i].start, ___pa(kernel_vma_ranges[i].start), (kernel_vma_ranges[i].end - kernel_vma_ranges[i].start) + 1, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
+      local_safe_halt();
+  }
+
+  {
+    virt_addr_t ro_start = ALIGN_DOWN((addr_t)_srodata, PAGE_SIZE);
+    virt_addr_t ro_end = ALIGN_UP((addr_t)_erodata, PAGE_SIZE) - 1;
+
+    if (mmu_map(&kernel_pg_space, ro_start, ___pa(ro_start), (ro_end - ro_start) + 1, MMU_FLAG_READ) != MMU_OK)
       local_safe_halt();
   }
 
@@ -175,7 +184,7 @@ static void setup_boot_reserves(void)
       memblock_add(e->phys_range);
     }
     else
-    {
+  {
       memblock_reserve(e->phys_range);
     }
   }
@@ -183,12 +192,6 @@ static void setup_boot_reserves(void)
 
 static int setup_kernel_reserves(void)
 {
-  if (memblock_reserve((range_t) { .start = ___pa(_stext), .end = ___pa(_etext) - 1 }) != MEMBLOCK_OK ||
-      memblock_reserve((range_t) { .start = ___pa(_srodata), .end = ___pa(_erodata) - 1 }) != MEMBLOCK_OK ||
-      memblock_reserve((range_t) { .start = ___pa(_sdata), .end = ___pa(_edata) - 1 }) != MEMBLOCK_OK ||
-      memblock_reserve((range_t) { .start = ___pa(_sbss), .end = ___pa(_ebss) - 1 }) != MEMBLOCK_OK)
-    return -1;
-
   range_t kernel_vma_ranges[] = {
     { .start = ALIGN_DOWN((addr_t)_stext, PAGE_SIZE), .end = ALIGN_UP((addr_t)_etext, PAGE_SIZE) - 1 },
     { .start = ALIGN_DOWN((addr_t)_srodata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_erodata, PAGE_SIZE) - 1 },
@@ -198,6 +201,9 @@ static int setup_kernel_reserves(void)
 
   for (size_t i = 0; i < sizeof(kernel_vma_ranges) / sizeof(kernel_vma_ranges[0]); i++)
   {
+    if(memblock_reserve((range_t){ .start = ___pa(kernel_vma_ranges[i].end), .end = ___pa(kernel_vma_ranges[i].end) }) != MEMBLOCK_OK)
+      return -1;
+
     if (vma_reserve(&kernel_vma_space, kernel_vma_ranges[i], 0) != VMA_OK)
       return -1;
   }
@@ -220,14 +226,8 @@ static virt_addr_t setup_bsp_stack(void)
 static mmu_err_t mmu_bootstrap_alloc_page(void* __unused__, phys_addr_t* out)
 {
   range_t range;
-  if(memblock_alloc(PAGE_SIZE, PAGE_ALIGN, &range) != MEMBLOCK_OK)
+  if(memblock_alloc_range(PAGE_SIZE, PAGE_ALIGN, (range_t){ .start = 0, .end = PHYS_DIRECT_MAP_LIMIT }, &range) != MEMBLOCK_OK)
     return MMU_ERR_ALLOCATOR;
-
-  if(range.start >= PHYS_DIRECT_MAP_LIMIT)
-  {
-    memblock_alloc_free(range);
-    return MMU_ERR_ALLOCATOR;
-  }
 
   *out = range.start;
   return MMU_OK;

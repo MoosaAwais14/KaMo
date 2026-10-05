@@ -31,10 +31,11 @@ typedef struct mmu_alloc_ops_s {
 
 typedef uint64_t mmu_flags_t;
 
-#define MMU_FLAG_WRITE       (1ull << 0)
-#define MMU_FLAG_USER        (1ull << 1)
-#define MMU_FLAG_EXEC        (1ull << 2)
-#define MMU_FLAG_GLOBAL      (1ull << 3)
+#define MMU_FLAG_READ        (1ull << 0)
+#define MMU_FLAG_WRITE       (1ull << 1)
+#define MMU_FLAG_USER        (1ull << 2)
+#define MMU_FLAG_EXEC        (1ull << 3)
+#define MMU_FLAG_GLOBAL      (1ull << 4)
 
 #define MMU_FLAG_CACHE_SHIFT 8
 #define MMU_FLAG_CACHE_MASK  (3ull << MMU_FLAG_CACHE_SHIFT)

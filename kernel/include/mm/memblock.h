@@ -23,6 +23,7 @@ extern memblock_err_t memblock_add(range_t physical_range);
 extern memblock_err_t memblock_reserve(range_t physical_range);
 
 extern memblock_err_t memblock_alloc(size_t size, size_t aligned, range_t* out);
+extern memblock_err_t memblock_alloc_range(size_t size, size_t aligned, range_t range, range_t* out);
 extern memblock_err_t memblock_alloc_free(range_t range);
 
 extern memblock_err_t memblock_memory_first(memblock_iter_t *iter, range_t *out);

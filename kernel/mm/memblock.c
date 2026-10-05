@@ -90,6 +90,65 @@ memblock_err_t memblock_alloc(size_t size, size_t aligned, range_t* out)
   return MEMBLOCK_ERR_NOMEM;
 }
 
+memblock_err_t memblock_alloc_range(size_t size, size_t aligned, range_t range, range_t* out)
+{
+  if (!out || size == 0)
+    return MEMBLOCK_ERR_INVALID;
+
+  if (aligned == 0)
+    aligned = MEMBLOCK_SIZE;
+
+  if ((aligned & (aligned - 1)) != 0)
+    return MEMBLOCK_ERR_INVALID;
+
+  if (range.end < range.start)
+    return MEMBLOCK_ERR_INVALID;
+
+  memblock_iter_t iter;
+  range_t memory_range;
+
+  if (memblock_memory_first(&iter, &memory_range))
+    return MEMBLOCK_ERR_NOMEM;
+
+  do
+  {
+    phys_addr_t sub_start = (memory_range.start > range.start) ? memory_range.start : range.start;
+    phys_addr_t sub_end   = (memory_range.end < range.end) ? memory_range.end : range.end;
+
+    if (sub_start <= sub_end)
+    {
+      range_t effective_range = {
+        .start = sub_start,
+        .end = sub_end
+      };
+
+      phys_addr_t start;
+
+      if (memblock_find_free_in_range(&effective_range, size, aligned, &start))
+      {
+        if ((phys_addr_t)(size - 1) > UINTPTR_MAX - start)
+          return MEMBLOCK_ERR_NOMEM;
+
+        range_t allocation = {
+          .start = start,
+          .end = start + (phys_addr_t)(size - 1)
+        };
+
+        memblock_err_t err = memblock_reserve(allocation);
+
+        if (err != MEMBLOCK_OK)
+          return err;
+
+        *out = allocation;
+        return MEMBLOCK_OK;
+      }
+    }
+
+  } while (!memblock_memory_next(&iter, &memory_range));
+
+  return MEMBLOCK_ERR_NOMEM;
+}
+
 memblock_err_t memblock_alloc_free(range_t range)
 {
   if (!rb_tree_memory.cmp || !rb_tree_reserved.cmp)

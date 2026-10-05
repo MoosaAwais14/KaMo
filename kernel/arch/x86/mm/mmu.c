@@ -7,7 +7,7 @@
 
 #include <lib/memory.h>
 
-static inline void arch_mmu_decode_flags(mmu_flags_t flags, uint8_t* rw, uint8_t* user, uint8_t* pwt, uint8_t* pcd, uint8_t* pat, uint8_t* global);
+static inline void arch_mmu_decode_flags(mmu_flags_t flags, uint8_t* present, uint8_t* rw, uint8_t* user, uint8_t* pwt, uint8_t* pcd, uint8_t* pat, uint8_t* global);
 
 static inline void arch_mmu_build_huge_pde(page_directory_entry_t* pde, phys_addr_t paddr, uint8_t present, uint8_t rw, uint8_t user, uint8_t pwt, uint8_t pcd, uint8_t pat, uint8_t page_size, uint8_t global);
 static inline void arch_mmu_build_pt_pde(page_directory_entry_t *pde, phys_addr_t pt_phys, uint8_t present, uint8_t rw, uint8_t user, uint8_t pwt, uint8_t pcd);
@@ -194,7 +194,6 @@ mmu_err_t arch_mmu_unmap(struct mmu_space_s* space, virt_addr_t vaddr, size_t si
       
       pt->pages[pt_idx].value = 0;
 
-      // CHECK IF SHOULD RELEASE PT
       uint8_t release = 1;
       for (size_t i = 0; i < PAGE_TABLE_ENTRIES; ++i) {
         if (pt->pages[i].bits.present) {
@@ -207,6 +206,7 @@ mmu_err_t arch_mmu_unmap(struct mmu_space_s* space, virt_addr_t vaddr, size_t si
 
       if(release)
       {
+        pde->value = 0;
         mmu_alloc_ops->release_page(mmu_alloc_ops->ctx, phys_pt);
       }
     }
@@ -232,8 +232,8 @@ static inline mmu_err_t arch_mmu_map_small(struct mmu_space_s* space, virt_addr_
   if (pde->ps0.present && pde->ps0.page_size)
     return MMU_ERR_FIELD_MISMATCH;
 
-  uint8_t rw, user, pwt, pcd, pat, global;
-  arch_mmu_decode_flags(flags, &rw, &user, &pwt, &pcd, &pat, &global);
+  uint8_t present, rw, user, pwt, pcd, pat, global;
+  arch_mmu_decode_flags(flags, &present, &rw, &user, &pwt, &pcd, &pat, &global);
 
   if (!pde->ps0.present) {
     mmu_err_t err = arch_mmu_preallocate_page_table(space, vaddr);
@@ -247,7 +247,7 @@ static inline mmu_err_t arch_mmu_map_small(struct mmu_space_s* space, virt_addr_
     return MMU_ERR_ALLOCATOR;
 
   page_table_entry_t *pte = &pt->pages[pt_idx];
-  arch_mmu_build_small_pte(pte, paddr, 1, rw, user, pwt, pcd, pat, global); 
+  arch_mmu_build_small_pte(pte, paddr, present, rw, user, pwt, pcd, pat, global); 
 
   arch_mmu_phys_unmap(space, (virt_addr_t)pt);
 
@@ -263,10 +263,10 @@ static inline mmu_err_t arch_mmu_map_huge(struct mmu_space_s* space, virt_addr_t
   if (pde->ps1.present && !pde->ps1.page_size)
     return MMU_ERR_FIELD_MISMATCH;
 
-  uint8_t rw, user, pwt, pcd, pat, global;
-  arch_mmu_decode_flags(flags, &rw, &user, &pwt, &pcd, &pat, &global);
+  uint8_t present, rw, user, pwt, pcd, pat, global;
+  arch_mmu_decode_flags(flags, &present, &rw, &user, &pwt, &pcd, &pat, &global);
 
-  arch_mmu_build_huge_pde(pde, paddr, 1, rw, user, pwt, pcd, pat, 1, global);    
+  arch_mmu_build_huge_pde(pde, paddr, present, rw, user, pwt, pcd, pat, 1, global);    
 
   return MMU_OK;
 }
@@ -277,7 +277,7 @@ static inline virt_addr_t arch_mmu_phys_map(struct mmu_space_s* space, phys_addr
     return ___va(paddr);
 
   virt_addr_t vaddr;
-  if(arch_fixmap_map(space, paddr, MMU_FLAG_WRITE, &vaddr) != MMU_OK)
+  if(arch_fixmap_map(space, paddr, MMU_FLAG_READ | MMU_FLAG_WRITE, &vaddr) != MMU_OK)
     return 0;
 
   return vaddr;
@@ -343,8 +343,9 @@ static inline void arch_mmu_build_small_pte(page_table_entry_t* pte, phys_addr_t
   pte->bits = entry;
 }
 
-static inline void arch_mmu_decode_flags(mmu_flags_t flags, uint8_t* rw, uint8_t* user, uint8_t* pwt, uint8_t* pcd, uint8_t* pat, uint8_t* global)
+static inline void arch_mmu_decode_flags(mmu_flags_t flags, uint8_t* present, uint8_t* rw, uint8_t* user, uint8_t* pwt, uint8_t* pcd, uint8_t* pat, uint8_t* global)
 {
+  *present = (flags & MMU_FLAG_READ) != 0;
   *rw      = (flags & MMU_FLAG_WRITE) != 0;
   *user    = (flags & MMU_FLAG_USER) != 0;
   *global  = (flags & MMU_FLAG_GLOBAL) != 0;
