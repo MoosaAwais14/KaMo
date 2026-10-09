@@ -26,6 +26,10 @@ LOAD_PHYSICAL_ADDR = __LOAD_PHYSICAL_ADDR;
 #define __va(x)        ((void*)___va(x))
 #define __pa(x)        (___pa(x))
 
+#include <kernel/range.h>
+
+static const range_t phys_direct_map_range = { .start = 0x0, .end = PHYS_DIRECT_MAP_LIMIT };
+
 #endif
 
 #endif

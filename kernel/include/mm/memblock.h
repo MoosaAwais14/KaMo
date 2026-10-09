@@ -31,6 +31,6 @@ extern memblock_err_t memblock_memory_next(memblock_iter_t *iter, range_t *out);
 
 extern memblock_err_t memblock_reserved_first(memblock_iter_t *iter, range_t *out);
 extern memblock_err_t memblock_reserved_next(memblock_iter_t *iter, range_t *out);
-
+extern uint8_t memblock_is_reserved(range_t range);
 
 #endif

@@ -295,6 +295,12 @@ memblock_err_t memblock_reserved_next(memblock_iter_t *iter, range_t *out)
   return MEMBLOCK_OK;
 }
 
+uint8_t memblock_is_reserved(range_t range)
+{
+  rb_tree_node_t* overlap = memblock_find_overlap(&rb_tree_reserved, &range);
+  return overlap != NULL;
+}
+
 static memblock_err_t memblock_add_range(rb_tree_t* tree, range_t physical_range)
 {
   range_t merged_range = physical_range;
