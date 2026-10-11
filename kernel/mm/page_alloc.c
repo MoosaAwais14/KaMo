@@ -1,5 +1,6 @@
 #include <mm/page_alloc.h>
 #include <mm/memblock.h>
+#include <locking/spinlock.h>
 #include <lib/memory.h>
 #include <lib/string.h>
 
@@ -19,6 +20,7 @@ struct buddy_zone_s {
   pfn_t base_pfn;
   size_t free_pages;
   struct order_s orders[NR_PAGE_ORDERS];
+  raw_spinlock_t rlock;
 };
 
 struct page_alloc_s {
@@ -37,6 +39,9 @@ static struct page_alloc_s page_alloc;
 
 page_alloc_err_t page_alloc_init(void)
 {
+  for(size_t i = 0; i < ZONE_MAX; i++)
+    page_alloc.zones[i].rlock = RAW_SPINLOCK_UNLOCKED;
+
   memblock_iter_t imem;
   range_t mem_range;
 
@@ -116,6 +121,8 @@ page_t* alloc_pages(zone_type_t zone_type, uint8_t order)
   struct buddy_zone_s *zone = &page_alloc.zones[zone_type];
   uint8_t current_order = order;
 
+  unsigned long irq_flags = raw_spin_lock_irqsave(&zone->rlock);
+
   while (current_order <= MAX_PAGE_ORDER && !zone->orders[current_order].area.free_list) 
   {
     current_order++;
@@ -123,6 +130,7 @@ page_t* alloc_pages(zone_type_t zone_type, uint8_t order)
 
   if (current_order > MAX_PAGE_ORDER) 
   {
+    raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
     return NULL; 
   }
 
@@ -149,6 +157,7 @@ page_t* alloc_pages(zone_type_t zone_type, uint8_t order)
   page->order = order;
   page->refcount = 1;
 
+  raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
   return page;
 }
 
@@ -162,6 +171,8 @@ void free_pages(page_t* page, uint8_t order)
 
   if(!zone)
     return;
+
+  unsigned long irq_flags = raw_spin_lock_irqsave(&zone->rlock);
 
   while (order < MAX_PAGE_ORDER) 
   {
@@ -197,6 +208,8 @@ void free_pages(page_t* page, uint8_t order)
   list_add(&zone->orders[order].area.free_list, page);
   zone->orders[order].area.nr_free++;
   zone->free_pages += (1UL << order);
+
+  raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
 }
 
 page_t* pfn_to_page(pfn_t pfn) 

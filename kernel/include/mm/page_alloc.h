@@ -5,10 +5,7 @@
 #include <stddef.h>
 
 #include <kernel/address.h>
-
 #include <asm/page_alloc.h>
-
-#include <lib/bitmap.h>
 
 typedef enum {
   ZONE_NORMAL = 0,

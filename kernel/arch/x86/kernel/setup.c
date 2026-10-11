@@ -77,14 +77,6 @@ void __noreturn setup_arch(void)
   arch_switch_stack_to_continue(bsp_stack);
 }
 
-void vga_print(volatile unsigned short *base, const char *str)
-{
-    static unsigned int pos = 0;
-
-    while (*str)
-        base[pos++] = (unsigned char)*str++ | (0x07 << 8);
-}
-
 void __noreturn continue_setup_arch(void)
 {
   earlybump_init();
@@ -122,6 +114,7 @@ void __noreturn continue_setup_arch(void)
   kernel_pg_space.is_kernel = 1;
   if (mmu_init(&kernel_pg_space, &mmu_ops) != MMU_OK)
     local_safe_halt();
+
   if (arch_fixmap_init(&kernel_pg_space.arch) != MMU_OK)
     local_safe_halt();
 
@@ -133,12 +126,6 @@ void __noreturn continue_setup_arch(void)
     local_safe_halt();
 
   mmu_set_alloc_ops(&mmu_late_ops);
-
-  if (mmu_map(&kernel_pg_space, 0xB8000, 0xB8000, PAGE_SIZE, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
-    local_safe_halt();
-
-  vga_print((void*)0xB8000, "What is good.");
-  mmu_unmap(&kernel_pg_space, 0xB8000, PAGE_SIZE);
 
   // patch allocators for mm
 

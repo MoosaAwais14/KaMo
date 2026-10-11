@@ -43,17 +43,14 @@ mmu_err_t arch_fixmap_map(arch_mmu_space_t* space, phys_addr_t paddr, mmu_flags_
   if (!space || !vaddr)
     return MMU_ERR_BAD_ARG;
 
-  preempt_disable();
   if (read_cr3() != space->cr3) 
   {
-    preempt_enable();
     return MMU_ERR_BAD_ARG;
   }
 
   uint32_t cpu_id = arch_cpu_current_id();
   if (cpu_id >= CPU_MAX) 
   {
-    preempt_enable();
     return MMU_ERR_BAD_ARG;
   }
 
@@ -72,23 +69,20 @@ mmu_err_t arch_fixmap_map(arch_mmu_space_t* space, phys_addr_t paddr, mmu_flags_
 
     virt_addr_t slot_vaddr = FIXMAP_SLOT_ADDR(cpu_id, slot_idx);
     slot->in_use = 1;
-    raw_spin_unlock_irqrestore(&slot->rlock, irq_flags);
 
     mmu_err_t ret = arch_mmu_map(space, slot_vaddr, paddr, FIXMAP_SIZE, flags);
     if (ret != MMU_OK)
     {
-      irq_flags = raw_spin_lock_irqsave(&slot->rlock);
       slot->in_use = 0;
       raw_spin_unlock_irqrestore(&slot->rlock, irq_flags);
-      preempt_enable();
       return ret;
     }
 
     *vaddr = slot_vaddr;
+    raw_spin_unlock_irqrestore(&slot->rlock, irq_flags);
     return MMU_OK;
   }
 
-  preempt_enable();
   return MMU_ERR_NO_RESOURCES;
 }
 
@@ -97,17 +91,14 @@ mmu_err_t arch_fixmap_unmap(arch_mmu_space_t* space, virt_addr_t vaddr)
   if (!space)
     return MMU_ERR_BAD_ARG;
 
-  preempt_disable();
   if (read_cr3() != space->cr3) 
   {
-    preempt_enable();
     return MMU_ERR_BAD_ARG;
   }
 
   uint32_t cpu_id = arch_cpu_current_id();
   if (cpu_id >= CPU_MAX) 
   {
-    preempt_enable();
     return MMU_ERR_BAD_ARG;
   }
 
@@ -123,26 +114,20 @@ mmu_err_t arch_fixmap_unmap(arch_mmu_space_t* space, virt_addr_t vaddr)
     if (!slot->in_use) 
     {
       raw_spin_unlock_irqrestore(&slot->rlock, irq_flags);
-      preempt_enable();
       return MMU_ERR_NOT_MAPPED;
     }
-
-    raw_spin_unlock_irqrestore(&slot->rlock, irq_flags);
 
     mmu_err_t ret = arch_mmu_unmap(space, vaddr, FIXMAP_SIZE);
     if (ret != MMU_OK)
     {
-      preempt_enable();
+      raw_spin_unlock_irqrestore(&slot->rlock, irq_flags);
       return ret;
     }
 
-    irq_flags = raw_spin_lock_irqsave(&slot->rlock);
     slot->in_use = 0;
     raw_spin_unlock_irqrestore(&slot->rlock, irq_flags);
-    preempt_enable();
     return MMU_OK;
   }
 
-  preempt_enable();
   return MMU_ERR_BAD_ARG;
 }
