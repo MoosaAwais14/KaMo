@@ -17,10 +17,10 @@
 #define FIXMAP_SLOT_ADDR(cpu_id, slot_idx) \
 	(FIXMAP_BASE + ((cpu_id) * FIXMAP_CPU_STRIDE) + ((slot_idx) * FIXMAP_SIZE))
 
-extern mmu_err_t arch_fixmap_early_init(struct mmu_space_s* space);
+extern mmu_err_t arch_fixmap_init(arch_mmu_space_t* space);
 
-extern mmu_err_t arch_fixmap_map(struct mmu_space_s* space, phys_addr_t paddr, mmu_flags_t flags, virt_addr_t* vaddr);
-extern mmu_err_t arch_fixmap_unmap(struct mmu_space_s* space, virt_addr_t vaddr);
+extern mmu_err_t arch_fixmap_map(arch_mmu_space_t* space, phys_addr_t paddr, mmu_flags_t flags, virt_addr_t* vaddr);
+extern mmu_err_t arch_fixmap_unmap(arch_mmu_space_t* space, virt_addr_t vaddr);
 
 #endif
 

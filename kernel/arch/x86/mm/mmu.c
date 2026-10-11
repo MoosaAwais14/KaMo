@@ -13,21 +13,21 @@ static inline void arch_mmu_build_huge_pde(page_directory_entry_t* pde, phys_add
 static inline void arch_mmu_build_pt_pde(page_directory_entry_t *pde, phys_addr_t pt_phys, uint8_t present, uint8_t rw, uint8_t user, uint8_t pwt, uint8_t pcd);
 static inline void arch_mmu_build_small_pte(page_table_entry_t* pte, phys_addr_t paddr, uint8_t present, uint8_t rw, uint8_t user, uint8_t pwt, uint8_t pcd, uint8_t pat, uint8_t global);
 
-static inline virt_addr_t arch_mmu_phys_map(struct mmu_space_s* space, phys_addr_t paddr);
-static inline void arch_mmu_phys_unmap(struct mmu_space_s* space, virt_addr_t vaddr);
+static inline virt_addr_t arch_mmu_phys_map(arch_mmu_space_t* space, phys_addr_t paddr);
+static inline void arch_mmu_phys_unmap(arch_mmu_space_t* space, virt_addr_t vaddr);
 
-static inline mmu_err_t arch_mmu_map_small(struct mmu_space_s* space, virt_addr_t vaddr, phys_addr_t paddr, mmu_flags_t flags, const mmu_alloc_ops_t* mmu_ops);
-static inline mmu_err_t arch_mmu_map_huge(struct mmu_space_s* space, virt_addr_t vaddr, phys_addr_t paddr, mmu_flags_t flags);
+static inline mmu_err_t arch_mmu_map_small(arch_mmu_space_t* space, virt_addr_t vaddr, phys_addr_t paddr, mmu_flags_t flags, const mmu_alloc_ops_t* mmu_ops);
+static inline mmu_err_t arch_mmu_map_huge(arch_mmu_space_t* space, virt_addr_t vaddr, phys_addr_t paddr, mmu_flags_t flags);
 
-mmu_err_t arch_mmu_init(struct mmu_space_s* space)
+mmu_err_t arch_mmu_init(arch_mmu_space_t* space)
 {
-  if(!space || !space->cr3 || !space->is_kernel || !IS_ALIGNED(space->cr3, PAGE_ALIGN))
+  if(!space || !space->cr3 || !IS_ALIGNED(space->cr3, PAGE_ALIGN))
     return MMU_ERR_BAD_ARG;
 
   return MMU_OK;
 }
 
-mmu_err_t arch_mmu_preallocate_page_table(struct mmu_space_s* space, virt_addr_t vaddr)
+mmu_err_t arch_mmu_preallocate_page_table(arch_mmu_space_t* space, virt_addr_t vaddr)
 {
   if (!space || !IS_ALIGNED(vaddr, PAGE_ALIGN) || !mmu_alloc_ops || !mmu_alloc_ops->alloc_page)
     return MMU_ERR_BAD_ARG;
@@ -54,7 +54,7 @@ mmu_err_t arch_mmu_preallocate_page_table(struct mmu_space_s* space, virt_addr_t
   return MMU_OK;
 }
 
-mmu_err_t arch_mmu_tlb_invalidate_page(struct mmu_space_s* space, virt_addr_t vaddr)
+mmu_err_t arch_mmu_tlb_invalidate_page(arch_mmu_space_t* space, virt_addr_t vaddr)
 {
   if (!space || !IS_ALIGNED(vaddr, PAGE_ALIGN))
     return MMU_ERR_BAD_ARG;
@@ -65,7 +65,7 @@ mmu_err_t arch_mmu_tlb_invalidate_page(struct mmu_space_s* space, virt_addr_t va
   return MMU_OK;
 }
 
-mmu_err_t arch_mmu_tlb_flush(struct mmu_space_s* space)
+mmu_err_t arch_mmu_tlb_flush(arch_mmu_space_t* space)
 {
   if (!space)
     return MMU_ERR_BAD_ARG;
@@ -88,7 +88,7 @@ mmu_err_t arch_mmu_tlb_flush(struct mmu_space_s* space)
   return MMU_OK;
 }
 
-mmu_err_t arch_mmu_map(struct mmu_space_s* space, virt_addr_t vaddr, phys_addr_t paddr, size_t size, mmu_flags_t flags)
+mmu_err_t arch_mmu_map(arch_mmu_space_t* space, virt_addr_t vaddr, phys_addr_t paddr, size_t size, mmu_flags_t flags)
 {
   if(!space || !size || !IS_ALIGNED(vaddr, PAGE_ALIGN) ||
      !IS_ALIGNED(paddr, PAGE_ALIGN) || !IS_ALIGNED(size, PAGE_ALIGN) ||
@@ -137,7 +137,7 @@ mmu_err_t arch_mmu_map(struct mmu_space_s* space, virt_addr_t vaddr, phys_addr_t
   return MMU_OK;
 }
 
-mmu_err_t arch_mmu_unmap(struct mmu_space_s* space, virt_addr_t vaddr, size_t size)
+mmu_err_t arch_mmu_unmap(arch_mmu_space_t* space, virt_addr_t vaddr, size_t size)
 {
   if(!space || !size || !IS_ALIGNED(vaddr, PAGE_ALIGN) || !IS_ALIGNED(size, PAGE_ALIGN) ||
      size > UINTPTR_MAX - vaddr)
@@ -219,7 +219,7 @@ mmu_err_t arch_mmu_unmap(struct mmu_space_s* space, virt_addr_t vaddr, size_t si
   return MMU_OK;
 }
 
-static inline mmu_err_t arch_mmu_map_small(struct mmu_space_s* space, virt_addr_t vaddr, phys_addr_t paddr, mmu_flags_t flags, const mmu_alloc_ops_t* mmu_ops)
+static inline mmu_err_t arch_mmu_map_small(arch_mmu_space_t* space, virt_addr_t vaddr, phys_addr_t paddr, mmu_flags_t flags, const mmu_alloc_ops_t* mmu_ops)
 {
   if (!space || !mmu_ops || !mmu_ops->alloc_page)
     return MMU_ERR_BAD_ARG;
@@ -254,7 +254,7 @@ static inline mmu_err_t arch_mmu_map_small(struct mmu_space_s* space, virt_addr_
   return MMU_OK;
 }
 
-static inline mmu_err_t arch_mmu_map_huge(struct mmu_space_s* space, virt_addr_t vaddr, phys_addr_t paddr, mmu_flags_t flags)
+static inline mmu_err_t arch_mmu_map_huge(arch_mmu_space_t* space, virt_addr_t vaddr, phys_addr_t paddr, mmu_flags_t flags)
 {
   const size_t pd_idx = PD_INDEX(vaddr);
 
@@ -271,7 +271,7 @@ static inline mmu_err_t arch_mmu_map_huge(struct mmu_space_s* space, virt_addr_t
   return MMU_OK;
 }
 
-static inline virt_addr_t arch_mmu_phys_map(struct mmu_space_s* space, phys_addr_t paddr)
+static inline virt_addr_t arch_mmu_phys_map(arch_mmu_space_t* space, phys_addr_t paddr)
 {
   if(paddr < PHYS_DIRECT_MAP_LIMIT)
     return ___va(paddr);
@@ -283,7 +283,7 @@ static inline virt_addr_t arch_mmu_phys_map(struct mmu_space_s* space, phys_addr
   return vaddr;
 }
 
-static inline void arch_mmu_phys_unmap(struct mmu_space_s* space, virt_addr_t vaddr)
+static inline void arch_mmu_phys_unmap(arch_mmu_space_t* space, virt_addr_t vaddr)
 {
   if(vaddr < DIRECT_MAP_LIMIT)
     return;

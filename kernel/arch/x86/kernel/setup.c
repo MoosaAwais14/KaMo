@@ -118,24 +118,24 @@ void __noreturn continue_setup_arch(void)
     arch_exception_early_init();
   }
 
-  kernel_pg_space.cr3 = ___pa(&kernel_pg_space.page_directory);
+  kernel_pg_space.arch.cr3 = ___pa(&kernel_pg_space.arch.page_directory);
   kernel_pg_space.is_kernel = 1;
   if (mmu_init(&kernel_pg_space, &mmu_ops) != MMU_OK)
     local_safe_halt();
-  if (arch_fixmap_early_init(&kernel_pg_space) != MMU_OK)
+  if (arch_fixmap_init(&kernel_pg_space.arch) != MMU_OK)
     local_safe_halt();
 
   cpu_init(0, &kernel_mm);
 
   setup_bootstrap_paging();
 
-  if (mmu_map(&kernel_pg_space, 0xB8000, 0xB8000, PAGE_SIZE, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
-    local_safe_halt();
-
   if(page_alloc_init() != PAGE_ALLOC_OK)
     local_safe_halt();
 
   mmu_set_alloc_ops(&mmu_late_ops);
+
+  if (mmu_map(&kernel_pg_space, 0xB8000, 0xB8000, PAGE_SIZE, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
+    local_safe_halt();
 
   vga_print((void*)0xB8000, "What is good.");
   mmu_unmap(&kernel_pg_space, 0xB8000, PAGE_SIZE);
@@ -194,7 +194,7 @@ static void setup_bootstrap_paging(void)
       local_safe_halt();
   }
 
-  load_cr3(kernel_pg_space.cr3);
+  load_cr3(kernel_pg_space.arch.cr3);
 }
 
 static void setup_boot_reserves(void)
