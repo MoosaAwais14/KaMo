@@ -28,7 +28,7 @@ LOAD_PHYSICAL_ADDR = __LOAD_PHYSICAL_ADDR;
 
 #include <kernel/range.h>
 
-static const range_t phys_direct_map_range = { .start = 0x0, .end = PHYS_DIRECT_MAP_LIMIT };
+static const range_t phys_direct_map_range = { .start = 0x0, .end = PHYS_DIRECT_MAP_LIMIT - 1 };
 
 #endif
 

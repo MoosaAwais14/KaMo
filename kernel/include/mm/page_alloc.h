@@ -40,7 +40,7 @@ extern void free_pages(page_t* page, uint8_t order);
 extern page_t* pfn_to_page(pfn_t pfn);
 extern pfn_t page_to_pfn(page_t* page);
 
-#define PHYS_PFN(phys)  (phys >> PAGE_SHIFT)
-#define PFN_PHYS(pfn)   (pfn << PAGE_SHIFT)
+#define PHYS_PFN(phys)  ((phys) >> PAGE_SHIFT)
+#define PFN_PHYS(pfn)   ((pfn) << PAGE_SHIFT)
 
 #endif

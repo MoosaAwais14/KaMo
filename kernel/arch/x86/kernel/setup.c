@@ -135,7 +135,6 @@ void __noreturn continue_setup_arch(void)
   if(page_alloc_init() != PAGE_ALLOC_OK)
     local_safe_halt();
 
-  // ISSUE WITH PAGE ALLOC
   mmu_set_alloc_ops(&mmu_late_ops);
 
   vga_print((void*)0xB8000, "What is good.");
@@ -209,7 +208,7 @@ static void setup_boot_reserves(void)
       memblock_add(e->phys_range);
     }
     else
-  {
+    {
       memblock_reserve(e->phys_range);
     }
   }

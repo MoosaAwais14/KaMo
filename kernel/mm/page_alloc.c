@@ -31,6 +31,8 @@ struct page_alloc_s {
 static inline void list_add(page_t** head, page_t* page);
 static inline void list_remove(page_t** head, page_t* page);
 
+static struct buddy_zone_s* get_zone(pfn_t pfn);
+
 static struct page_alloc_s page_alloc;
 
 page_alloc_err_t page_alloc_init(void)
@@ -79,7 +81,6 @@ page_alloc_err_t page_alloc_init(void)
         if (pfn >= page_alloc.base_pfn && pfn < page_alloc.base_pfn + page_alloc.total_pages) 
         {
           page->refcount = 1;
-          // add flag, maybe to indicate it predates page_alloc
         }
       }
     } while (memblock_reserved_next(&ires, &res_range) == MEMBLOCK_OK);
@@ -156,9 +157,11 @@ void free_pages(page_t* page, uint8_t order)
   if (!page || order > MAX_PAGE_ORDER)
     return;
  
-  // figure this out, right now its only on normal.
-  struct buddy_zone_s *zone = &page_alloc.zones[ZONE_NORMAL]; 
   pfn_t pfn = page_to_pfn(page);
+  struct buddy_zone_s *zone = get_zone(pfn);
+
+  if(!zone)
+    return;
 
   while (order < MAX_PAGE_ORDER) 
   {
@@ -204,6 +207,20 @@ page_t* pfn_to_page(pfn_t pfn)
 pfn_t page_to_pfn(page_t* page) 
 {
   return page_alloc.base_pfn + (size_t)(page - page_alloc.page_array);
+}
+
+static struct buddy_zone_s* get_zone(pfn_t pfn)
+{
+  pfn_t direct_map_pfn_start = PHYS_PFN(phys_direct_map_range.start);
+  pfn_t direct_map_pfn_end = PHYS_PFN(phys_direct_map_range.end + 1);
+  
+  if(pfn < direct_map_pfn_start)
+    return NULL;
+
+  if(pfn < direct_map_pfn_end)
+    return &page_alloc.zones[ZONE_NORMAL];
+
+  return &page_alloc.zones[ZONE_HIGHMEM];
 }
 
 static inline void list_add(page_t** head, page_t* page) 
