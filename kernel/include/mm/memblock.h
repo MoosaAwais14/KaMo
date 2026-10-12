@@ -10,7 +10,8 @@ typedef enum memblock_err_e {
   MEMBLOCK_OK,
   MEMBLOCK_ERR_INVALID,
   MEMBLOCK_ERR_EARLYBUMP,
-  MEMBLOCK_ERR_NOMEM
+  MEMBLOCK_ERR_NOMEM,
+  MEMBLOCK_ERR_DISABLED
 } memblock_err_t;
 
 typedef struct {
@@ -18,6 +19,7 @@ typedef struct {
 } memblock_iter_t;
 
 extern memblock_err_t memblock_init(void);
+extern memblock_err_t memblock_disable(void);
 
 extern memblock_err_t memblock_add(range_t physical_range);
 extern memblock_err_t memblock_reserve(range_t physical_range);

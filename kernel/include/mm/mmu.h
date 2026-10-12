@@ -23,7 +23,6 @@ typedef struct mmu_alloc_ops_s {
 } mmu_alloc_ops_t;
 
 extern mmu_err_t mmu_init(mmu_space_t* space, const mmu_alloc_ops_t* alloc_ops);
-extern mmu_err_t mmu_set_alloc_ops(const mmu_alloc_ops_t* alloc_ops);
 extern mmu_err_t mmu_map(mmu_space_t* space, virt_addr_t vaddr, phys_addr_t paddr, size_t size, mmu_flags_t flags);
 extern mmu_err_t mmu_unmap(mmu_space_t* space, virt_addr_t vaddr, size_t size);
 extern mmu_err_t mmu_tlb_invalidate_page(mmu_space_t* space, virt_addr_t vaddr);

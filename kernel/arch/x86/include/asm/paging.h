@@ -69,12 +69,12 @@ typedef union {
 typedef struct page_table_s
 {
   page_table_entry_t pages[PAGE_TABLE_ENTRIES];
-} page_table_t __aligned(PAGE_ALIGN);
+} page_table_t __aligned(PAGE_SIZE);
 
 typedef struct page_directory_s
 {
   page_directory_entry_t entries[PAGE_DIRECTORY_ENTRIES];
-} page_directory_t __aligned(PAGE_ALIGN);
+} page_directory_t __aligned(PAGE_SIZE);
 
 #define PD_INDEX(virt)        ((virt) >> PAGE_SHIFT_HUGE)
 #define PT_INDEX(virt)        (((virt) >> PAGE_SHIFT) & (PAGE_TABLE_ENTRIES - 1))

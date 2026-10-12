@@ -14,16 +14,25 @@ static uint8_t memblock_find_free_in_range(const range_t* memory_range, size_t s
 
 static memblock_err_t memblock_add_range(rb_tree_t* tree, range_t physical_range);
 
+static uint8_t disabled = 0;
 static rb_tree_t rb_tree_memory = { 0 };
 static rb_tree_t rb_tree_reserved = { 0 };
 
 memblock_err_t memblock_init(void)
 {
+  disabled = 0;
+
   if (rb_tree_init(&rb_tree_memory, memblock_rb_tree_cmp))
     return MEMBLOCK_ERR_INVALID;
   if (rb_tree_init(&rb_tree_reserved, memblock_rb_tree_cmp))
     return MEMBLOCK_ERR_INVALID;
 
+  return MEMBLOCK_OK;
+}
+
+memblock_err_t memblock_disable(void)
+{
+  disabled = 1;
   return MEMBLOCK_OK;
 }
 
@@ -53,6 +62,9 @@ memblock_err_t memblock_alloc(size_t size, size_t aligned, range_t* out)
 
   if ((aligned & (aligned - 1)) != 0)
     return MEMBLOCK_ERR_INVALID;
+
+  if(disabled)
+    return MEMBLOCK_ERR_DISABLED;
 
   memblock_iter_t iter;
   range_t memory_range;
@@ -103,7 +115,10 @@ memblock_err_t memblock_alloc_range(size_t size, size_t aligned, range_t range, 
 
   if (range.end < range.start)
     return MEMBLOCK_ERR_INVALID;
-
+  
+  if(disabled)
+    return MEMBLOCK_ERR_DISABLED;
+    
   memblock_iter_t iter;
   range_t memory_range;
 
@@ -156,6 +171,9 @@ memblock_err_t memblock_alloc_free(range_t range)
 
   if (range.end < range.start)
     return MEMBLOCK_ERR_INVALID;
+
+  if(disabled)
+    return MEMBLOCK_ERR_DISABLED;
 
   rb_tree_node_t* memory_node = memblock_find_overlap(&rb_tree_memory, &range);
 

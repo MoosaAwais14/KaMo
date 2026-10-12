@@ -16,16 +16,6 @@ mmu_err_t mmu_init(mmu_space_t* space, const mmu_alloc_ops_t* alloc_ops)
   return arch_mmu_init(&space->arch);
 }
 
-mmu_err_t mmu_set_alloc_ops(const mmu_alloc_ops_t* alloc_ops)
-{
-  if(!alloc_ops)
-    return MMU_ERR_BAD_ARG;
-
-  mmu_alloc_ops = alloc_ops;
-
-  return MMU_OK;
-}
-
 mmu_err_t mmu_map(mmu_space_t* space, virt_addr_t vaddr, phys_addr_t paddr, size_t size, mmu_flags_t flags)
 {
   if(!space)

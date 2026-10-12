@@ -40,23 +40,19 @@ static virt_addr_t setup_bsp_stack(void);
 
 extern void __noreturn arch_switch_stack_to_continue(uint32_t new_stack);
 
-static const mmu_alloc_ops_t mmu_ops = {
+static mmu_alloc_ops_t mmu_ops = {
   .alloc_page = mmu_bootstrap_alloc_page,
   .release_page = mmu_bootstrap_release_page,
   .ctx = NULL
 };
 
-static const mmu_alloc_ops_t mmu_late_ops = {
-  .alloc_page = mmu_late_alloc_page,
-  .release_page = mmu_late_release_page,
-  .ctx = NULL
-};
-
-static const vma_alloc_ops_t vma_ops = {
+static vma_alloc_ops_t vma_ops = {
   .alloc = vma_bootstrap_alloc,
   .free = vma_bootstrap_free,
   .ctx = NULL
 };
+
+void* high_memory = (void*)DIRECT_MAP_LIMIT;
 
 mmu_space_t kernel_pg_space =  { };
 vma_space_t kernel_vma_space = { };
@@ -64,8 +60,6 @@ mm_space_t kernel_mm = {
   .mmu = &kernel_pg_space,
   .vma = &kernel_vma_space
 };
-
-void* high_memory = (void*)DIRECT_MAP_LIMIT;
 
 void __noreturn setup_arch(void)
 {
@@ -80,26 +74,6 @@ void __noreturn setup_arch(void)
   arch_switch_stack_to_continue(bsp_stack);
 }
 
-void vga_print(volatile unsigned short *base, const char *str)
-{
-  static unsigned int pos = 0;
-  static unsigned int row = 0;
-
-  while (*str)
-  {
-    if (*str == '\n')
-    {
-      row++;
-      pos = row * 80;
-      str++;
-      continue;
-    }
-
-    base[pos++] = (uint16_t)((uint8_t)*str++ | (0x07u << 8));
-  }
-}
-
-#include <lib/stdlib.h>
 void __noreturn continue_setup_arch(void)
 {
   earlybump_init();
@@ -148,29 +122,17 @@ void __noreturn continue_setup_arch(void)
   if(page_alloc_init() != PAGE_ALLOC_OK)
     local_safe_halt();
 
-  mmu_set_alloc_ops(&mmu_late_ops);
+  {
+    mmu_ops.alloc_page = mmu_late_alloc_page;
+    mmu_ops.release_page = mmu_late_release_page;
+    memblock_disable();
+  }
 
   if (vma_reserve(&kernel_vma_space, (range_t) {
     .start = VMALLOC_START,
     .end = VMALLOC_LIMIT - 1
   }, 0) != VMA_OK)
     local_safe_halt();
-
-  mmu_map(&kernel_pg_space, 0xB8000, 0xB8000, PAGE_SIZE, MMU_FLAG_READ | MMU_FLAG_WRITE);
-
-  char buff[32];
-  utoa(FIXMAP_BASE, buff, 16);
-  vga_print((void*)0xB8000, buff);
-  vga_print((void*)0xB8000, "  ");
-  utoa(FIXMAP_END, buff, 16);
-  vga_print((void*)0xB8000, buff);
-  vga_print((void*)0xB8000, "  ");
-  utoa(VMALLOC_START, buff, 16);
-  vga_print((void*)0xB8000, buff);
-  vga_print((void*)0xB8000, "  ");
-  utoa(VMALLOC_LIMIT - 1, buff, 16);
-  vga_print((void*)0xB8000, buff);
-  vga_print((void*)0xB8000, "  ");
 
   // patch allocators for mm
 
@@ -289,7 +251,7 @@ static virt_addr_t setup_bsp_stack(void)
 static mmu_err_t mmu_bootstrap_alloc_page(void* __unused__, phys_addr_t* out)
 {
   range_t range;
-  if(memblock_alloc_range(PAGE_SIZE, PAGE_ALIGN, phys_direct_map_range, &range) != MEMBLOCK_OK)
+  if(memblock_alloc_range(PAGE_SIZE, PAGE_SIZE, phys_direct_map_range, &range) != MEMBLOCK_OK)
     return MMU_ERR_ALLOCATOR;
 
   *out = range.start;
