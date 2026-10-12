@@ -8,6 +8,7 @@
 #include <asm/paging.h>
 #include <asm/page.h>
 #include <asm/fixmap.h>
+#include <asm/vmalloc.h>
 #include <asm/mmu.h>
 #include <asm/vma.h>
 #include <asm-generic/sections.h>
@@ -79,6 +80,14 @@ void __noreturn setup_arch(void)
   arch_switch_stack_to_continue(bsp_stack);
 }
 
+void vga_print(volatile unsigned short *base, const char *str)
+{
+    static unsigned int pos = 0;
+
+    while (*str)
+        base[pos++] = (unsigned char)*str++ | (0x07 << 8);
+}
+  #include <lib/stdlib.h>
 void __noreturn continue_setup_arch(void)
 {
   earlybump_init();
@@ -99,7 +108,7 @@ void __noreturn continue_setup_arch(void)
 
   if (vma_reserve(&kernel_vma_space, (range_t) {
     .start = FIXMAP_BASE,
-    .end = FIXMAP_BASE + FIXMAP_WINDOW_SIZE - 1
+    .end = FIXMAP_END 
   }, 0) != VMA_OK)
     local_safe_halt();
 
@@ -128,6 +137,30 @@ void __noreturn continue_setup_arch(void)
     local_safe_halt();
 
   mmu_set_alloc_ops(&mmu_late_ops);
+
+  if (vma_reserve(&kernel_vma_space, (range_t) {
+    .start = VMALLOC_START,
+    .end = VMALLOC_LIMIT - 1
+  }, 0) != VMA_OK)
+    local_safe_halt();
+
+  mmu_map(&kernel_pg_space, 0xB8000, 0xB8000, PAGE_SIZE, MMU_FLAG_READ | MMU_FLAG_WRITE);
+
+  char buff[32];
+  utoa(FIXMAP_BASE, buff, 16);
+  vga_print((void*)0xB8000, buff);
+  vga_print((void*)0xB8000, "  ");
+  utoa(FIXMAP_END, buff, 16);
+  vga_print((void*)0xB8000, buff);
+  vga_print((void*)0xB8000, "  ");
+  utoa(VMALLOC_START, buff, 16);
+  vga_print((void*)0xB8000, buff);
+  vga_print((void*)0xB8000, "  ");
+  utoa(VMALLOC_LIMIT - 1, buff, 16);
+  vga_print((void*)0xB8000, buff);
+  vga_print((void*)0xB8000, "  ");
+
+
 
   // patch allocators for mm
 
@@ -161,7 +194,7 @@ static void setup_bootstrap_paging(void)
     if (mmu_map(&kernel_pg_space, PAGE_OFFSET + start, start, end - start, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
       local_safe_halt();
 
-    high_memory = __va(end);;
+    high_memory = __va(end);
   } while (memblock_memory_next(&iter, &memory) == MEMBLOCK_OK);
 
   range_t kernel_vma_ranges[] = {

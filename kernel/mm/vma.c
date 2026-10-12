@@ -166,6 +166,74 @@ vma_err_t vma_alloc(vma_space_t* space, size_t size, size_t aligned, vma_flags_t
   }
 }
 
+vma_err_t vma_alloc_range(vma_space_t* space, size_t size, size_t aligned, vma_flags_t flags, range_t range, range_t* out_range)
+{
+  if (!space || !space->rb_tree.cmp || !space->rb_tree.NIL || !out_range ||
+    size == 0 || range.start > range.end ||
+    !IS_ALIGNED(range.start, VMA_SIZE) ||
+    (range.end & (VMA_SIZE - 1)) != VMA_SIZE - 1 ||
+    !range_contains(&space->bounds, &range))
+    return VMA_ERR_BAD_ARGS;
+
+  if (aligned == 0)
+    aligned = VMA_SIZE;
+
+  if (aligned < VMA_SIZE || (aligned & (aligned - 1)) != 0 ||
+    size > UINTPTR_MAX - (VMA_SIZE - 1))
+    return VMA_ERR_BAD_ARGS;
+
+  virt_addr_t rounded_size = ALIGN_UP((virt_addr_t)size, VMA_SIZE);
+  if (rounded_size == 0 || rounded_size > range.end - range.start + 1)
+    return VMA_ERR_BAD_ARGS;
+
+  virt_addr_t candidate = ALIGN_UP(range.start, aligned);
+  if (candidate < range.start ||
+    candidate > range.end ||
+    rounded_size - 1 > range.end - candidate)
+    return VMA_ERR_NO_SPACE;
+
+  const vma_alloc_ops_t* allocator = vma_alloc_ops;
+  if (!allocator || !allocator->alloc || !allocator->free)
+    return VMA_ERR_ALLOCATOR;
+
+  range_t allocation_range = {
+    .start = candidate,
+    .end = candidate + rounded_size - 1
+  };
+
+  virt_addr_t allocation = allocator->alloc(
+    allocator->ctx, sizeof(struct vma_node_s), _Alignof(struct vma_node_s));
+  if (!allocation)
+    return VMA_ERR_ALLOCATOR;
+
+  struct vma_node_s* vma_node = (struct vma_node_s*)(uintptr_t)allocation;
+  vma_node->range = allocation_range;
+  vma_node->flags = flags;
+  vma_node->allocator = allocator;
+  vma_node->rb_node.data = vma_node;
+
+  unsigned long irq_flags = raw_spin_lock_irqsave(&space->rlock);
+
+  if (vma_find_overlap(&space->rb_tree, &allocation_range))
+  {
+    raw_spin_unlock_irqrestore(&space->rlock, irq_flags);
+    allocator->free(allocator->ctx, allocation);
+    return VMA_ERR_OVERLAP;
+  }
+
+  int insert_error = rb_tree_insert(&space->rb_tree, &vma_node->rb_node);
+  raw_spin_unlock_irqrestore(&space->rlock, irq_flags);
+
+  if (insert_error)
+  {
+    allocator->free(allocator->ctx, allocation);
+    return VMA_ERR_INVALID;
+  }
+
+  *out_range = allocation_range;
+  return VMA_OK;
+}
+
 vma_err_t vma_release(vma_space_t* space, range_t range)
 {
   if (!space || !space->rb_tree.cmp || !space->rb_tree.NIL ||

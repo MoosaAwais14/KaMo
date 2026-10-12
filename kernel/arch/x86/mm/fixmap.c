@@ -21,7 +21,7 @@ static struct cpu_fixmap_s cpu_fixmaps[CPU_MAX];
 mmu_err_t arch_fixmap_init(arch_mmu_space_t* space)
 {
   if (!IS_ALIGNED(FIXMAP_BASE, PAGE_SIZE_HUGE) ||
-    !FIXMAP_WINDOW_SIZE || FIXMAP_WINDOW_SIZE > PAGE_SIZE_HUGE)
+    !FIXMAP_SIZE || FIXMAP_SIZE > PAGE_SIZE_HUGE)
     return MMU_ERR_BAD_ARG;
 
   for(size_t cpu_id = 0; cpu_id < CPU_MAX; cpu_id++)
@@ -70,7 +70,7 @@ mmu_err_t arch_fixmap_map(arch_mmu_space_t* space, phys_addr_t paddr, mmu_flags_
     virt_addr_t slot_vaddr = FIXMAP_SLOT_ADDR(cpu_id, slot_idx);
     slot->in_use = 1;
 
-    mmu_err_t ret = arch_mmu_map(space, slot_vaddr, paddr, FIXMAP_SIZE, flags);
+    mmu_err_t ret = arch_mmu_map(space, slot_vaddr, paddr, FIXMAP_SLOT_SIZE, flags);
     if (ret != MMU_OK)
     {
       slot->in_use = 0;
@@ -117,7 +117,7 @@ mmu_err_t arch_fixmap_unmap(arch_mmu_space_t* space, virt_addr_t vaddr)
       return MMU_ERR_NOT_MAPPED;
     }
 
-    mmu_err_t ret = arch_mmu_unmap(space, vaddr, FIXMAP_SIZE);
+    mmu_err_t ret = arch_mmu_unmap(space, vaddr, FIXMAP_SLOT_SIZE);
     if (ret != MMU_OK)
     {
       raw_spin_unlock_irqrestore(&slot->rlock, irq_flags);

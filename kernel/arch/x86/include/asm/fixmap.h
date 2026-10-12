@@ -7,14 +7,18 @@
 #include <kernel/cpu.h>
 #include <mm/mmu.h>
 
-#define FIXMAP_SLOTS_PER_CPU 4
-#define FIXMAP_SIZE_SHIFT   PAGE_SHIFT
-#define FIXMAP_SIZE         (1UL << FIXMAP_SIZE_SHIFT)
-#define FIXMAP_CPU_STRIDE   (FIXMAP_SLOTS_PER_CPU * FIXMAP_SIZE)
-#define FIXMAP_WINDOW_SIZE  (CPU_MAX * FIXMAP_CPU_STRIDE)
+#include <lib/memory.h>
+
+#define FIXMAP_SLOTS_PER_CPU     4
+#define FIXMAP_SLOT_SIZE_SHIFT  PAGE_SHIFT
+#define FIXMAP_SLOT_SIZE        (1UL << FIXMAP_SLOT_SIZE_SHIFT)
+#define FIXMAP_CPU_STRIDE       (FIXMAP_SLOTS_PER_CPU * FIXMAP_SLOT_SIZE)
+#define FIXMAP_SIZE             (CPU_MAX * FIXMAP_CPU_STRIDE)
+#define FIXMAP_BASE             ALIGN_DOWN((FIXMAP_LIMIT_END - FIXMAP_SIZE + 1), PAGE_SIZE_HUGE)
+#define FIXMAP_END              (ALIGN_UP(FIXMAP_BASE + FIXMAP_SIZE, PAGE_SIZE_HUGE) - 1)
 
 #define FIXMAP_SLOT_ADDR(cpu_id, slot_idx) \
-	(FIXMAP_BASE + ((cpu_id) * FIXMAP_CPU_STRIDE) + ((slot_idx) * FIXMAP_SIZE))
+	(FIXMAP_BASE + ((cpu_id) * FIXMAP_CPU_STRIDE) + ((slot_idx) * FIXMAP_SLOT_SIZE))
 
 extern mmu_err_t arch_fixmap_init(arch_mmu_space_t* space);
 

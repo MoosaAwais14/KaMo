@@ -39,8 +39,8 @@ extern vma_err_t vma_init(vma_space_t* space, range_t bounds);
 
 extern vma_err_t vma_reserve(vma_space_t* space, range_t range, vma_flags_t flags);
 extern vma_err_t vma_alloc(vma_space_t* space, size_t size, size_t aligned, vma_flags_t flags, range_t* out_range);
+extern vma_err_t vma_alloc_range(vma_space_t* space, size_t size, size_t aligned, vma_flags_t flags, range_t range, range_t* out_range);
 extern vma_err_t vma_release(vma_space_t* space, range_t range);
-
 
 extern const vma_alloc_ops_t* vma_alloc_ops;
 

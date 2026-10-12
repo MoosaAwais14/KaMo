@@ -8,7 +8,7 @@
 
 #include <compiler/attributes.h>
 
-#define CPU_MAX 64 
+#define CPU_MAX 16
 typedef struct cpu_s {
   uint32_t id;
   uint8_t online;

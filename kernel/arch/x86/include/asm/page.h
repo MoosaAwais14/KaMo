@@ -4,8 +4,8 @@
 #define __LOAD_PHYSICAL_ADDR  0x00100000
 #define __PAGE_OFFSET         0xC0000000
 #define __DIRECTMAP_LIMIT     0xF0000000
-#define __VMALLOC_OFFSET      0x00200000
-#define __VMALLOC_SIZE        0x20000000
+#define __VMALLOC_OFFSET      0x00010000
+#define __FIXMAP_LIMIT_END    0xFFFFFFFF
 
 #ifdef LINKER_SCRIPT
 
@@ -34,8 +34,7 @@ extern void *high_memory;
 #define VMALLOC_START         (DIRECT_MAP_LIMIT + __VMALLOC_OFFSET)
 #endif
 
-#define VMALLOC_LIMIT         (VMALLOC_START + __VMALLOC_SIZE)
-#define FIXMAP_BASE           (VMALLOC_LIMIT + __VMALLOC_OFFSET)
+#define FIXMAP_LIMIT_END      (__FIXMAP_LIMIT_END)
 
 #ifndef __ASSEMBLER__
 
