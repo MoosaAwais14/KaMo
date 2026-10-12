@@ -82,12 +82,24 @@ void __noreturn setup_arch(void)
 
 void vga_print(volatile unsigned short *base, const char *str)
 {
-    static unsigned int pos = 0;
+  static unsigned int pos = 0;
+  static unsigned int row = 0;
 
-    while (*str)
-        base[pos++] = (unsigned char)*str++ | (0x07 << 8);
+  while (*str)
+  {
+    if (*str == '\n')
+    {
+      row++;
+      pos = row * 80;
+      str++;
+      continue;
+    }
+
+    base[pos++] = (uint16_t)((uint8_t)*str++ | (0x07u << 8));
+  }
 }
-  #include <lib/stdlib.h>
+
+#include <lib/stdlib.h>
 void __noreturn continue_setup_arch(void)
 {
   earlybump_init();
@@ -160,8 +172,6 @@ void __noreturn continue_setup_arch(void)
   vga_print((void*)0xB8000, buff);
   vga_print((void*)0xB8000, "  ");
 
-
-
   // patch allocators for mm
 
   irq_init();
@@ -186,15 +196,18 @@ static void setup_bootstrap_paging(void)
       continue;
 
     const phys_addr_t start = ALIGN_UP(memory.start, PAGE_SIZE);
-    const phys_addr_t end = memory.end >= PHYS_DIRECT_MAP_LIMIT ? PHYS_DIRECT_MAP_LIMIT : ALIGN_DOWN(memory.end + 1, PAGE_SIZE);
+    const phys_addr_t end = (memory.end >= PHYS_DIRECT_MAP_LIMIT ? PHYS_DIRECT_MAP_LIMIT : ALIGN_DOWN(memory.end + 1, PAGE_SIZE)) - 1;
 
-    if (start >= end)
+    if (start >= (end + 1))
       continue;
 
-    if (mmu_map(&kernel_pg_space, PAGE_OFFSET + start, start, end - start, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
+    if(vma_reserve(&kernel_vma_space, (range_t){ .start = ___va(start), .end = ___va(end) }, 0) != VMA_OK)
       local_safe_halt();
 
-    high_memory = __va(end);
+    if (mmu_map(&kernel_pg_space, ___va(start), start, (end - start) + 1, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
+      local_safe_halt();
+
+    high_memory = __va(end) + 1;
   } while (memblock_memory_next(&iter, &memory) == MEMBLOCK_OK);
 
   range_t kernel_vma_ranges[] = {
