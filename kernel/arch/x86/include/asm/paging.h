@@ -11,12 +11,6 @@
 
 #define PAGE_TABLE_ENTRIES      1024
 #define PAGE_DIRECTORY_ENTRIES  1024
-#define PAGE_SHIFT              12
-#define PAGE_SHIFT_HUGE         22
-#define PAGE_SIZE               (1ul << PAGE_SHIFT) 
-#define PAGE_ALIGN              (1ul << PAGE_SHIFT)
-#define PAGE_SIZE_HUGE          (1ul << PAGE_SHIFT_HUGE)
-#define PAGE_ALIGN_HUGE         (1ul << PAGE_SHIFT_HUGE)
 
 struct page_directory_entry_ps0_s {
   uint32_t present      : 1;

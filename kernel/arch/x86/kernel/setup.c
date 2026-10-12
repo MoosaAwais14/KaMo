@@ -64,6 +64,8 @@ mm_space_t kernel_mm = {
   .vma = &kernel_vma_space
 };
 
+void* high_memory = (void*)DIRECT_MAP_LIMIT;
+
 void __noreturn setup_arch(void)
 {
   cpu_early_init(0);
@@ -159,6 +161,7 @@ static void setup_bootstrap_paging(void)
     if (mmu_map(&kernel_pg_space, PAGE_OFFSET + start, start, end - start, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
       local_safe_halt();
 
+    high_memory = __va(end);;
   } while (memblock_memory_next(&iter, &memory) == MEMBLOCK_OK);
 
   range_t kernel_vma_ranges[] = {
@@ -215,7 +218,7 @@ static int setup_kernel_reserves(void)
 
   for (size_t i = 0; i < sizeof(kernel_vma_ranges) / sizeof(kernel_vma_ranges[0]); i++)
   {
-    if(memblock_reserve((range_t){ .start = ___pa(kernel_vma_ranges[i].end), .end = ___pa(kernel_vma_ranges[i].end) }) != MEMBLOCK_OK)
+    if(memblock_reserve((range_t){ .start = ___pa(kernel_vma_ranges[i].start), .end = ___pa(kernel_vma_ranges[i].end) }) != MEMBLOCK_OK)
       return -1;
 
     if (vma_reserve(&kernel_vma_space, kernel_vma_ranges[i], 0) != VMA_OK)

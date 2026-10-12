@@ -3,14 +3,13 @@
 
 #if !defined(__ASSEMBLER__) && !defined(LINKER_SCRIPT)
 
-#include <asm/paging.h>
+#include <asm/page.h>
 #include <kernel/cpu.h>
 #include <mm/mmu.h>
 
 #define FIXMAP_SLOTS_PER_CPU 4
 #define FIXMAP_SIZE_SHIFT   PAGE_SHIFT
 #define FIXMAP_SIZE         (1UL << FIXMAP_SIZE_SHIFT)
-#define FIXMAP_BASE         DIRECT_MAP_LIMIT
 #define FIXMAP_CPU_STRIDE   (FIXMAP_SLOTS_PER_CPU * FIXMAP_SIZE)
 #define FIXMAP_WINDOW_SIZE  (CPU_MAX * FIXMAP_CPU_STRIDE)
 
