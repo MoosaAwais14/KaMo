@@ -86,6 +86,7 @@ page_alloc_err_t page_alloc_init(void)
         if (pfn >= page_alloc.base_pfn && pfn < page_alloc.base_pfn + page_alloc.total_pages) 
         {
           page->refcount = 1;
+          page->flags = PAGE_FLAG_UNKOWN;
         }
       }
     } while (memblock_reserved_next(&ires, &res_range) == MEMBLOCK_OK);
@@ -156,6 +157,7 @@ page_t* alloc_pages(zone_type_t zone_type, uint8_t order)
 
   page->order = order;
   page->refcount = 1;
+  page->flags = PAGE_FLAG_UNKOWN;
 
   raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
   return page;
@@ -204,6 +206,7 @@ void free_pages(page_t* page, uint8_t order)
 
   page->order = order;
   page->refcount = 0;
+  page->flags = 0;
 
   list_add(&zone->orders[order].area.free_list, page);
   zone->orders[order].area.nr_free++;
@@ -214,6 +217,8 @@ void free_pages(page_t* page, uint8_t order)
 
 page_t* pfn_to_page(pfn_t pfn) 
 {
+  if(pfn >= (page_alloc.total_pages + page_alloc.base_pfn) || pfn < page_alloc.base_pfn)
+    return NULL;
   return &page_alloc.page_array[pfn - page_alloc.base_pfn];
 }
 

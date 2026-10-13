@@ -238,8 +238,7 @@ vma_err_t vma_release(vma_space_t* space, range_t range)
   if (!allocator->alloc)
     return VMA_ERR_ALLOCATOR;
 
-  virt_addr_t right_allocation = allocator->alloc(
-    allocator->ctx, sizeof(struct vma_node_s), _Alignof(struct vma_node_s));
+  virt_addr_t right_allocation = allocator->alloc(allocator->ctx, sizeof(struct vma_node_s));
   if (!right_allocation)
     return VMA_ERR_ALLOCATOR;
 
@@ -321,8 +320,7 @@ static vma_err_t vma_add_range(vma_space_t* space, range_t new_range, vma_flags_
 
   if (!fnode)
   {
-    virt_addr_t allocation = allocator->alloc(
-      allocator->ctx, sizeof(struct vma_node_s), _Alignof(struct vma_node_s));
+    virt_addr_t allocation = allocator->alloc(allocator->ctx, sizeof(struct vma_node_s));
     if (!allocation)
       return VMA_ERR_ALLOCATOR;
 

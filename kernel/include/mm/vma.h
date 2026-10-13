@@ -20,7 +20,7 @@ typedef enum vma_err_s {
 } vma_err_t;
 
 typedef struct vma_alloc_ops_s {
-  virt_addr_t (*alloc)(void* ctx, size_t size, size_t aligned);
+  virt_addr_t (*alloc)(void* ctx, size_t size);
   void (*free)(void* ctx, virt_addr_t vaddr);
   void* ctx;
 } vma_alloc_ops_t;

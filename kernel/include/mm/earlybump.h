@@ -6,7 +6,7 @@
 
 #include <lib/sizes.h>
 
-#define EARLYBUMP_RESERVED_SIZE  KiB(96)
+#define EARLYBUMP_RESERVED_SIZE  KiB(64)
 
 extern void earlybump_init(void);
 extern void earlybump_disable(void);

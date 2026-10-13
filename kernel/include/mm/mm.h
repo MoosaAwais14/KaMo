@@ -11,4 +11,6 @@ typedef struct mm_space_s {
   struct vma_space_s* vma;
 } mm_space_t;
 
+extern mm_space_t kernel_mm;
+
 #endif

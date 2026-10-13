@@ -18,11 +18,13 @@
 #include <kernel/irq.h>
 #include <kernel/interrupt.h>
 
+#include <mm/mm.h>
 #include <mm/earlybump.h>
 #include <mm/mmu.h>
 #include <mm/vma.h>
 #include <mm/memblock.h>
 #include <mm/page_alloc.h>
+#include <mm/slab.h>
 
 #include <lib/string.h>
 
@@ -30,8 +32,10 @@ static mmu_err_t mmu_bootstrap_alloc_page(void* __unused__, phys_addr_t* out);
 static void mmu_bootstrap_release_page(void* __unused__, phys_addr_t paddr);
 static mmu_err_t mmu_late_alloc_page(void* __unused__, phys_addr_t* out);
 static void mmu_late_release_page(void* __unused__, phys_addr_t paddr);
-static virt_addr_t vma_bootstrap_alloc(void* __unused__, size_t size, size_t aligned);
+static virt_addr_t vma_bootstrap_alloc(void* __unused__, size_t size);
 static void vma_bootstrap_free(void* __unused0__, virt_addr_t __unused1__);
+static virt_addr_t vma_late_alloc(void* __unused__, size_t size);
+static void vma_late_free(void* __unused__, virt_addr_t virt);
 
 static void setup_bootstrap_paging(void);
 static void setup_boot_reserves(void);
@@ -46,16 +50,23 @@ static mmu_alloc_ops_t mmu_ops = {
   .ctx = NULL
 };
 
-static vma_alloc_ops_t vma_ops = {
+static vma_alloc_ops_t vma_bootstrap_ops = {
   .alloc = vma_bootstrap_alloc,
   .free = vma_bootstrap_free,
   .ctx = NULL
 };
 
+static vma_alloc_ops_t vma_late_ops = {
+  .alloc = vma_late_alloc,
+  .free = vma_late_free,
+  .ctx = NULL
+};
+
 void* high_memory = (void*)DIRECT_MAP_LIMIT;
 
-mmu_space_t kernel_pg_space =  { };
-vma_space_t kernel_vma_space = { };
+static mmu_space_t kernel_pg_space =  { };
+static vma_space_t kernel_vma_space = { };
+
 mm_space_t kernel_mm = {
   .mmu = &kernel_pg_space,
   .vma = &kernel_vma_space
@@ -74,12 +85,33 @@ void __noreturn setup_arch(void)
   arch_switch_stack_to_continue(bsp_stack);
 }
 
+#include <lib/stdlib.h>
+void vga_print(volatile unsigned short *base, const char *str)
+{
+  static unsigned int pos = 0;
+  static unsigned int row = 0;
+
+  while (*str)
+  {
+    if (*str == '\n')
+    {
+      row++;
+      pos = row * 80;
+      str++;
+      continue;
+    }
+
+    base[pos++] = (uint16_t)((uint8_t)*str++ | (0x07u << 8));
+  }
+}
+
 void __noreturn continue_setup_arch(void)
 {
   earlybump_init();
 
   memblock_init();
-  vma_set_vma_allocator(&vma_ops);
+
+  vma_set_vma_allocator(&vma_bootstrap_ops);
   if (vma_init(&kernel_vma_space, (range_t) {
     .start = 0x0000000,
     .end = UINTPTR_MAX
@@ -92,12 +124,6 @@ void __noreturn continue_setup_arch(void)
   }, 0) != VMA_OK)
     local_safe_halt();
 
-  if (vma_reserve(&kernel_vma_space, (range_t) {
-    .start = FIXMAP_BASE,
-    .end = FIXMAP_END 
-  }, 0) != VMA_OK)
-    local_safe_halt();
-
   setup_boot_reserves();
   if (setup_kernel_reserves() != 0)
     local_safe_halt();
@@ -106,6 +132,12 @@ void __noreturn continue_setup_arch(void)
   {
     arch_exception_early_init();
   }
+
+  if (vma_reserve(&kernel_vma_space, (range_t) {
+    .start = FIXMAP_BASE,
+    .end = FIXMAP_END 
+  }, 0) != VMA_OK)
+    local_safe_halt();
 
   kernel_pg_space.arch.cr3 = ___pa(&kernel_pg_space.arch.page_directory);
   kernel_pg_space.is_kernel = 1;
@@ -134,7 +166,10 @@ void __noreturn continue_setup_arch(void)
   }, 0) != VMA_OK)
     local_safe_halt();
 
-  // patch allocators for mm
+  slab_init();
+  {
+    vma_set_vma_allocator(&vma_late_ops);
+  }
 
   irq_init();
 
@@ -270,6 +305,8 @@ static mmu_err_t mmu_late_alloc_page(void* __unused__, phys_addr_t* out)
   if(!page)
     return MMU_ERR_ALLOCATOR;
 
+  page->flags = PAGE_FLAG_MMU_ALLOCATION;
+
   pfn_t pfn = page_to_pfn(page);
   *out = PFN_PHYS(pfn);
 
@@ -279,16 +316,33 @@ static mmu_err_t mmu_late_alloc_page(void* __unused__, phys_addr_t* out)
 static void mmu_late_release_page(void* __unused__, phys_addr_t paddr)
 {
   page_t* page = pfn_to_page(PHYS_PFN(paddr));
+  if(!page)
+    return;
+
+  if(!(page->flags & PAGE_FLAG_UNKOWN || page->flags & PAGE_FLAG_MMU_ALLOCATION))
+    return;
+
   if(page->refcount > 0)
     page->refcount--;
   if(page->refcount == 0)
-    free_pages(page, 0);
+    free_pages(page, page->order);
 }
 
-static virt_addr_t vma_bootstrap_alloc(void* __unused__, size_t size, size_t aligned)
+static virt_addr_t vma_bootstrap_alloc(void* __unused__, size_t size)
 {
-  void* frame = earlybump_alloc(size, aligned);
-  return (virt_addr_t)frame;
+  void* ptr = earlybump_alloc(size, 4);
+  return (virt_addr_t)ptr;
 }
 
 static void vma_bootstrap_free(void* __unused0__, virt_addr_t __unused1__) { }
+
+static virt_addr_t vma_late_alloc(void* __unused__, size_t size)
+{
+  void* ptr = kmalloc(size);
+  return (virt_addr_t)ptr;
+}
+
+static void vma_late_free(void* __unused__, virt_addr_t virt)
+{
+  kfree((void*)virt);
+}

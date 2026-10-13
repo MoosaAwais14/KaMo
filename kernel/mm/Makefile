@@ -9,6 +9,7 @@ SOURCES := 			\
 	earlybump.c		\
 	memblock.c		\
 	page_alloc.c 	\
+	slab.c				\
 	mmu.c					\
 	vma.c
 
