@@ -7,6 +7,10 @@
 #include <lib/tree/rb_tree.h>
 #include <lib/memory.h>
 
+struct memblock_node_s {
+  range_t range;
+};
+
 static int memblock_rb_tree_cmp(const void* a, const void* b);
 
 static rb_tree_node_t* memblock_find_overlap(const rb_tree_t* tree, const range_t* range);
@@ -180,9 +184,9 @@ memblock_err_t memblock_alloc_free(range_t range)
   if (!memory_node)
     return MEMBLOCK_ERR_INVALID;
 
-  range_t* memory_range = memory_node->data;
+  struct memblock_node_s* memory_mem_node = memory_node->data;
 
-  if (!memory_range || !range_contains(memory_range, &range))
+  if (!memory_mem_node || !range_contains(&memory_mem_node->range, &range))
     return MEMBLOCK_ERR_INVALID;
 
   rb_tree_node_t* reserved_node = memblock_find_overlap(&rb_tree_reserved, &range);
@@ -190,12 +194,12 @@ memblock_err_t memblock_alloc_free(range_t range)
   if (!reserved_node)
     return MEMBLOCK_ERR_INVALID;
 
-  range_t* reserved_range = reserved_node->data;
+  struct memblock_node_s* reserved_mem_node = reserved_node->data;
 
-  if (!reserved_range || !range_contains(reserved_range, &range))
+  if (!reserved_mem_node || !range_contains(&reserved_mem_node->range, &range))
     return MEMBLOCK_ERR_INVALID;
 
-  if (range.start == reserved_range->start && range.end == reserved_range->end)
+  if (range.start == reserved_mem_node->range.start && range.end == reserved_mem_node->range.end)
   {
     if (rb_tree_remove(&rb_tree_reserved, reserved_node))
       return MEMBLOCK_ERR_INVALID;
@@ -203,12 +207,12 @@ memblock_err_t memblock_alloc_free(range_t range)
     return MEMBLOCK_OK;
   }
 
-  if (range.start == reserved_range->start)
+  if (range.start == reserved_mem_node->range.start)
   {
     if (range.end == UINTPTR_MAX)
       return MEMBLOCK_ERR_INVALID;
 
-    reserved_range->start = range.end + 1;
+    reserved_mem_node->range.start = range.end + 1;
 
     if (rb_tree_remove(&rb_tree_reserved, reserved_node))
       return MEMBLOCK_ERR_INVALID;
@@ -219,9 +223,9 @@ memblock_err_t memblock_alloc_free(range_t range)
     return MEMBLOCK_OK;
   }
 
-  if (range.end == reserved_range->end)
+  if (range.end == reserved_mem_node->range.end)
   {
-    reserved_range->end = range.start - 1;
+    reserved_mem_node->range.end = range.start - 1;
     return MEMBLOCK_OK;
   }
 
@@ -233,17 +237,17 @@ memblock_err_t memblock_alloc_free(range_t range)
   if (!right_node)
     return MEMBLOCK_ERR_EARLYBUMP;
 
-  range_t* right_range = earlybump_alloc(sizeof(*right_range), _Alignof(range_t));
+  struct memblock_node_s* right_mem_node = earlybump_alloc(sizeof(struct memblock_node_s), _Alignof(struct memblock_node_s));
 
-  if (!right_range)
+  if (!right_mem_node)
     return MEMBLOCK_ERR_EARLYBUMP;
 
-  right_range->start = range.end + 1;
-  right_range->end = reserved_range->end;
+  right_mem_node->range.start = range.end + 1;
+  right_mem_node->range.end = reserved_mem_node->range.end;
 
-  right_node->data = right_range;
+  right_node->data = right_mem_node;
 
-  reserved_range->end = range.start - 1;
+  reserved_mem_node->range.end = range.start - 1;
 
   if (rb_tree_insert(&rb_tree_reserved, right_node))
     return MEMBLOCK_ERR_INVALID;
@@ -261,7 +265,7 @@ memblock_err_t memblock_memory_first(memblock_iter_t *iter, range_t *out)
   if (iter->node == rb_tree_memory.NIL)
     return MEMBLOCK_ERR_INVALID;
 
-  *out = *(range_t*)((rb_tree_node_t*)iter->node)->data;
+  *out = ((struct memblock_node_s*)((rb_tree_node_t*)iter->node)->data)->range;
   return MEMBLOCK_OK;
 }
 
@@ -278,7 +282,7 @@ memblock_err_t memblock_memory_next(memblock_iter_t *iter, range_t *out)
   if (!iter->node || iter->node == rb_tree_memory.NIL)
     return MEMBLOCK_ERR_INVALID;
 
-  *out = *(range_t*)((rb_tree_node_t*)iter->node)->data;
+  *out = ((struct memblock_node_s*)((rb_tree_node_t*)iter->node)->data)->range;
   return MEMBLOCK_OK;
 }
 
@@ -292,7 +296,7 @@ memblock_err_t memblock_reserved_first(memblock_iter_t *iter, range_t *out)
   if (iter->node == rb_tree_reserved.NIL)
     return MEMBLOCK_ERR_INVALID;
 
-  *out = *(range_t*)((rb_tree_node_t*)iter->node)->data;
+  *out = ((struct memblock_node_s*)((rb_tree_node_t*)iter->node)->data)->range;
   return MEMBLOCK_OK;
 }
 
@@ -309,7 +313,7 @@ memblock_err_t memblock_reserved_next(memblock_iter_t *iter, range_t *out)
   if (!iter->node || iter->node == rb_tree_reserved.NIL)
     return MEMBLOCK_ERR_INVALID;
 
-  *out = *(range_t*)((rb_tree_node_t*)iter->node)->data;
+  *out = ((struct memblock_node_s*)((rb_tree_node_t*)iter->node)->data)->range;
   return MEMBLOCK_OK;
 }
 
@@ -336,43 +340,43 @@ static memblock_err_t memblock_add_range(rb_tree_t* tree, range_t physical_range
     if (!node)
       return MEMBLOCK_ERR_EARLYBUMP;
 
-    range_t* range = earlybump_alloc(sizeof(*range), _Alignof(range_t));
-    if (!range)
+    struct memblock_node_s* mem_node = earlybump_alloc(sizeof(struct memblock_node_s), _Alignof(struct memblock_node_s));
+    if (!mem_node)
       return MEMBLOCK_ERR_EARLYBUMP;
 
-    *range = physical_range;
-    node->data = range;
+    mem_node->range  = physical_range;
+    node->data = mem_node;
     return rb_tree_insert(tree, node) ? MEMBLOCK_ERR_INVALID : MEMBLOCK_OK;
   }
 
   rb_tree_node_t* reused_node = NULL;
-  range_t* reused_range = NULL;
+  struct memblock_node_s* reused_mem_node = NULL;
 
   while ((fnode = memblock_find_overlap(tree, &search_range)))
   {
-    range_t* frange = fnode->data;
-    if (!frange)
+    struct memblock_node_s* fmem_node = fnode->data;
+    if (!fmem_node)
       return MEMBLOCK_ERR_INVALID;
 
     if (!reused_node)
     {
       reused_node = fnode;
-      reused_range = frange;
+      reused_mem_node = fmem_node;
     }
 
     if (rb_tree_remove(tree, fnode))
       return MEMBLOCK_ERR_INVALID;
 
-    if (frange->start < merged_range.start)
-      merged_range.start = frange->start;
-    if (frange->end > merged_range.end)
-      merged_range.end = frange->end;
+    if (reused_mem_node->range.start < merged_range.start)
+      merged_range.start = reused_mem_node->range.start;
+    if (reused_mem_node->range.end > merged_range.end)
+      merged_range.end = reused_mem_node->range.end;
 
     search_range.start = (merged_range.start == 0) ? 0 : merged_range.start - 1;
     search_range.end = (merged_range.end == UINTPTR_MAX) ? UINTPTR_MAX : merged_range.end + 1;
   }
 
-  *reused_range = merged_range;
+  reused_mem_node->range = merged_range;
   return rb_tree_insert(tree, reused_node) ? MEMBLOCK_ERR_INVALID : MEMBLOCK_OK;
 }
 
@@ -382,10 +386,10 @@ static rb_tree_node_t* memblock_find_overlap(const rb_tree_t* tree, const range_
 
   while (node != tree->NIL)
   {
-    range_t* current = node->data;
-    if (current->end < range->start)
+    struct memblock_node_s* current = node->data;
+    if (current->range.end < range->start)
       node = node->right;
-    else if (range->end < current->start)
+    else if (range->end < current->range.start)
       node = node->left;
     else
       return node;
@@ -433,18 +437,18 @@ static uint8_t memblock_find_free_in_range(const range_t* memory_range, size_t s
       return 1;
     }
 
-    range_t* reserved = overlap->data;
+    struct memblock_node_s* reserved = overlap->data;
 
     if (!reserved)
       return 0;
 
-    if (reserved->end >= limit)
+    if (reserved->range.end >= limit)
       return 0;
 
-    if (reserved->end == UINTPTR_MAX)
+    if (reserved->range.end == UINTPTR_MAX)
       return 0;
 
-    phys_addr_t next = reserved->end + 1;
+    phys_addr_t next = reserved->range.end + 1;
 
     candidate = ALIGN_UP(next, aligned);
 
@@ -457,13 +461,13 @@ static uint8_t memblock_find_free_in_range(const range_t* memory_range, size_t s
 
 static int memblock_rb_tree_cmp(const void* a, const void* b)
 {
-  const range_t* range_a = a;
-  const range_t* range_b = b;
+  const struct memblock_node_s* node_a = a;
+  const struct memblock_node_s* node_b = b;
 
-  if (range_a->start < range_b->start)
+  if (node_a->range.start < node_b->range.start)
     return -1;
 
-  if (range_a->start > range_b->start)
+  if (node_a->range.start >  node_b->range.start)
     return 1;
 
   return 0;

@@ -15,27 +15,17 @@
 
 #include <kernel/start_kernel.h>
 #include <kernel/cpu.h>
-#include <kernel/irq.h>
-#include <kernel/interrupt.h>
 
 #include <mm/mm.h>
 #include <mm/earlybump.h>
 #include <mm/mmu.h>
 #include <mm/vma.h>
 #include <mm/memblock.h>
-#include <mm/page_alloc.h>
-#include <mm/slab.h>
 
 #include <lib/string.h>
 
-static mmu_err_t mmu_bootstrap_alloc_page(void* __unused__, phys_addr_t* out);
-static void mmu_bootstrap_release_page(void* __unused__, phys_addr_t paddr);
-static mmu_err_t mmu_late_alloc_page(void* __unused__, phys_addr_t* out);
-static void mmu_late_release_page(void* __unused__, phys_addr_t paddr);
-static virt_addr_t vma_bootstrap_alloc(void* __unused__, size_t size);
-static void vma_bootstrap_free(void* __unused0__, virt_addr_t __unused1__);
-static virt_addr_t vma_late_alloc(void* __unused__, size_t size);
-static void vma_late_free(void* __unused__, virt_addr_t virt);
+static mmu_err_t mmu_bootstrap_alloc_page(phys_addr_t* out);
+static void mmu_bootstrap_release_page(phys_addr_t paddr);
 
 static void setup_bootstrap_paging(void);
 static void setup_boot_reserves(void);
@@ -44,31 +34,16 @@ static virt_addr_t setup_bsp_stack(void);
 
 extern void __noreturn arch_switch_stack_to_continue(uint32_t new_stack);
 
-static mmu_alloc_ops_t mmu_ops = {
+static mmu_alloc_ops_t early_mmu_alloc_ops = {
   .alloc_page = mmu_bootstrap_alloc_page,
   .release_page = mmu_bootstrap_release_page,
-  .ctx = NULL
 };
 
-static vma_alloc_ops_t vma_bootstrap_ops = {
-  .alloc = vma_bootstrap_alloc,
-  .free = vma_bootstrap_free,
-  .ctx = NULL
-};
-
-static vma_alloc_ops_t vma_late_ops = {
-  .alloc = vma_late_alloc,
-  .free = vma_late_free,
-  .ctx = NULL
-};
-
-void* high_memory = (void*)DIRECT_MAP_LIMIT;
-
-static mmu_space_t kernel_pg_space =  { };
+static mmu_space_t kernel_pgd_space =  { };
 static vma_space_t kernel_vma_space = { };
 
 mm_space_t kernel_mm = {
-  .mmu = &kernel_pg_space,
+  .mmu = &kernel_pgd_space,
   .vma = &kernel_vma_space
 };
 
@@ -82,105 +57,44 @@ void __noreturn setup_arch(void)
     local_safe_halt();
   }
 
-  arch_switch_stack_to_continue(bsp_stack);
-}
-
-#include <lib/stdlib.h>
-void vga_print(volatile unsigned short *base, const char *str)
-{
-  static unsigned int pos = 0;
-  static unsigned int row = 0;
-
-  while (*str)
-  {
-    if (*str == '\n')
-    {
-      row++;
-      pos = row * 80;
-      str++;
-      continue;
-    }
-
-    base[pos++] = (uint16_t)((uint8_t)*str++ | (0x07u << 8));
-  }
-}
-
-void __noreturn continue_setup_arch(void)
-{
-  earlybump_init();
-
-  memblock_init();
-
-  vma_set_vma_allocator(&vma_bootstrap_ops);
-  if (vma_init(&kernel_vma_space, (range_t) {
-    .start = 0x0000000,
-    .end = UINTPTR_MAX
-  }) != VMA_OK)
-    local_safe_halt();
-
-  if (vma_reserve(&kernel_vma_space, (range_t) {
-    .start = 0,
-    .end = VMA_SIZE - 1
-  }, 0) != VMA_OK)
-    local_safe_halt();
-
-  setup_boot_reserves();
-  if (setup_kernel_reserves() != 0)
-    local_safe_halt();
-
   interrupt_init();
   {
     arch_exception_early_init();
   }
 
-  if (vma_reserve(&kernel_vma_space, (range_t) {
-    .start = FIXMAP_BASE,
-    .end = FIXMAP_END 
-  }, 0) != VMA_OK)
+  arch_switch_stack_to_continue(bsp_stack);
+}
+
+void __noreturn continue_setup_arch(void)
+{
+  setup_boot_reserves();
+  if (setup_kernel_reserves() != 0)
     local_safe_halt();
 
-  kernel_pg_space.arch.cr3 = ___pa(&kernel_pg_space.arch.page_directory);
-  kernel_pg_space.is_kernel = 1;
-  if (mmu_init(&kernel_pg_space, &mmu_ops) != MMU_OK)
+  kernel_pgd_space.arch.cr3 = ___pa(&kernel_pgd_space.arch.page_directory);
+  kernel_pgd_space.is_kernel = 1;
+
+  mmu_set_allocator(&early_mmu_alloc_ops);
+
+  if (mmu_init(&kernel_pgd_space) != MMU_OK)
     local_safe_halt();
 
-  if (arch_fixmap_init(&kernel_pg_space.arch) != MMU_OK)
+  if (arch_fixmap_init(&kernel_pgd_space.arch) != MMU_OK)
     local_safe_halt();
-
-  cpu_init(0, &kernel_mm);
 
   setup_bootstrap_paging();
-
-  if(page_alloc_init() != PAGE_ALLOC_OK)
-    local_safe_halt();
-
-  {
-    mmu_ops.alloc_page = mmu_late_alloc_page;
-    mmu_ops.release_page = mmu_late_release_page;
-    memblock_disable();
-  }
-
-  if (vma_reserve(&kernel_vma_space, (range_t) {
-    .start = VMALLOC_START,
-    .end = VMALLOC_LIMIT - 1
-  }, 0) != VMA_OK)
-    local_safe_halt();
-
-  slab_init();
-  {
-    vma_set_vma_allocator(&vma_late_ops);
-  }
-
-  irq_init();
-
-  // arch_exception_init(); // Update "early" exception vectors with proper handling
-
-  earlybump_disable();
   continue_start_kernel();
 }
 
 static void setup_bootstrap_paging(void)
 {
+  const range_t kernel_vm_ranges[] = {
+    { .start = ALIGN_DOWN((addr_t)_stext, PAGE_SIZE), .end = ALIGN_UP((addr_t)_etext, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_sdata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_edata, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_sbss, PAGE_SIZE), .end = ALIGN_UP((addr_t)_ebss, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_srodata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_erodata, PAGE_SIZE) - 1 }
+  };
+
   memblock_iter_t iter = { NULL };
   range_t memory;
 
@@ -198,36 +112,22 @@ static void setup_bootstrap_paging(void)
     if (start >= (end + 1))
       continue;
 
-    if(vma_reserve(&kernel_vma_space, (range_t){ .start = ___va(start), .end = ___va(end) }, 0) != VMA_OK)
-      local_safe_halt();
-
-    if (mmu_map(&kernel_pg_space, ___va(start), start, (end - start) + 1, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
+    if (mmu_map(&kernel_pgd_space, ___va(start), start, (end - start) + 1, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
       local_safe_halt();
 
     high_memory = __va(end) + 1;
   } while (memblock_memory_next(&iter, &memory) == MEMBLOCK_OK);
 
-  range_t kernel_vma_ranges[] = {
-    { .start = ALIGN_DOWN((addr_t)_stext, PAGE_SIZE), .end = ALIGN_UP((addr_t)_etext, PAGE_SIZE) - 1 },
-    { .start = ALIGN_DOWN((addr_t)_sdata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_edata, PAGE_SIZE) - 1 },
-    { .start = ALIGN_DOWN((addr_t)_sbss, PAGE_SIZE), .end = ALIGN_UP((addr_t)_ebss, PAGE_SIZE) - 1 },
-  };
-
-  for (size_t i = 0; i < sizeof(kernel_vma_ranges) / sizeof(kernel_vma_ranges[0]); i++)
+  for (size_t i = 0; i < 3; i++)
   {
-    if (mmu_map(&kernel_pg_space, kernel_vma_ranges[i].start, ___pa(kernel_vma_ranges[i].start), (kernel_vma_ranges[i].end - kernel_vma_ranges[i].start) + 1, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
+    if (mmu_map(&kernel_pgd_space, kernel_vm_ranges[i].start, ___pa(kernel_vm_ranges[i].start), (kernel_vm_ranges[i].end - kernel_vm_ranges[i].start) + 1, MMU_FLAG_READ | MMU_FLAG_WRITE) != MMU_OK)
       local_safe_halt();
   }
 
-  {
-    virt_addr_t ro_start = ALIGN_DOWN((addr_t)_srodata, PAGE_SIZE);
-    virt_addr_t ro_end = ALIGN_UP((addr_t)_erodata, PAGE_SIZE) - 1;
+  if (mmu_map(&kernel_pgd_space, kernel_vm_ranges[3].start, ___pa(kernel_vm_ranges[3].start), (kernel_vm_ranges[3].end - kernel_vm_ranges[3].start) + 1, MMU_FLAG_READ) != MMU_OK)
+    local_safe_halt();
 
-    if (mmu_map(&kernel_pg_space, ro_start, ___pa(ro_start), (ro_end - ro_start) + 1, MMU_FLAG_READ) != MMU_OK)
-      local_safe_halt();
-  }
-
-  load_cr3(kernel_pg_space.arch.cr3);
+  load_cr3(kernel_pgd_space.arch.cr3);
 }
 
 static void setup_boot_reserves(void)
@@ -249,22 +149,19 @@ static void setup_boot_reserves(void)
 
 static int setup_kernel_reserves(void)
 {
+  const range_t kernel_vm_ranges[] = {
+    { .start = ALIGN_DOWN((addr_t)_stext, PAGE_SIZE), .end = ALIGN_UP((addr_t)_etext, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_sdata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_edata, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_sbss, PAGE_SIZE), .end = ALIGN_UP((addr_t)_ebss, PAGE_SIZE) - 1 },
+    { .start = ALIGN_DOWN((addr_t)_srodata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_erodata, PAGE_SIZE) - 1 }
+  };
+
   if (memblock_reserve((range_t){ .start = 0x0, .end = PAGE_SIZE - 1 }) != MEMBLOCK_OK)
     return -1;
 
-  range_t kernel_vma_ranges[] = {
-    { .start = ALIGN_DOWN((addr_t)_stext, PAGE_SIZE), .end = ALIGN_UP((addr_t)_etext, PAGE_SIZE) - 1 },
-    { .start = ALIGN_DOWN((addr_t)_srodata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_erodata, PAGE_SIZE) - 1 },
-    { .start = ALIGN_DOWN((addr_t)_sdata, PAGE_SIZE), .end = ALIGN_UP((addr_t)_edata, PAGE_SIZE) - 1 },
-    { .start = ALIGN_DOWN((addr_t)_sbss, PAGE_SIZE), .end = ALIGN_UP((addr_t)_ebss, PAGE_SIZE) - 1 }
-  };
-
-  for (size_t i = 0; i < sizeof(kernel_vma_ranges) / sizeof(kernel_vma_ranges[0]); i++)
+  for (size_t i = 0; i < sizeof(kernel_vm_ranges) / sizeof(kernel_vm_ranges[0]); i++)
   {
-    if(memblock_reserve((range_t){ .start = ___pa(kernel_vma_ranges[i].start), .end = ___pa(kernel_vma_ranges[i].end) }) != MEMBLOCK_OK)
-      return -1;
-
-    if (vma_reserve(&kernel_vma_space, kernel_vma_ranges[i], 0) != VMA_OK)
+    if(memblock_reserve((range_t){ .start = ___pa(kernel_vm_ranges[i].start), .end = ___pa(kernel_vm_ranges[i].end) }) != MEMBLOCK_OK)
       return -1;
   }
 
@@ -283,7 +180,7 @@ static virt_addr_t setup_bsp_stack(void)
   return arch_cpu->kernel_stack;
 }
 
-static mmu_err_t mmu_bootstrap_alloc_page(void* __unused__, phys_addr_t* out)
+static mmu_err_t mmu_bootstrap_alloc_page(phys_addr_t* out)
 {
   range_t range;
   if(memblock_alloc_range(PAGE_SIZE, PAGE_SIZE, phys_direct_map_range, &range) != MEMBLOCK_OK)
@@ -293,56 +190,8 @@ static mmu_err_t mmu_bootstrap_alloc_page(void* __unused__, phys_addr_t* out)
   return MMU_OK;
 }
 
-static void mmu_bootstrap_release_page(void* __unused__, phys_addr_t paddr) 
+static void mmu_bootstrap_release_page(phys_addr_t paddr) 
 {
   range_t range = { .start = paddr, .end = (paddr + PAGE_SIZE) - 1 };
   memblock_alloc_free(range);
-}
-
-static mmu_err_t mmu_late_alloc_page(void* __unused__, phys_addr_t* out)
-{
-  page_t* page = alloc_pages(ZONE_NORMAL, 0);
-  if(!page)
-    return MMU_ERR_ALLOCATOR;
-
-  page->flags = PAGE_FLAG_MMU_ALLOCATION;
-
-  pfn_t pfn = page_to_pfn(page);
-  *out = PFN_PHYS(pfn);
-
-  return MMU_OK;
-}
-
-static void mmu_late_release_page(void* __unused__, phys_addr_t paddr)
-{
-  page_t* page = pfn_to_page(PHYS_PFN(paddr));
-  if(!page)
-    return;
-
-  if(!(page->flags & PAGE_FLAG_UNKOWN || page->flags & PAGE_FLAG_MMU_ALLOCATION))
-    return;
-
-  if(page->refcount > 0)
-    page->refcount--;
-  if(page->refcount == 0)
-    free_pages(page, page->order);
-}
-
-static virt_addr_t vma_bootstrap_alloc(void* __unused__, size_t size)
-{
-  void* ptr = earlybump_alloc(size, 4);
-  return (virt_addr_t)ptr;
-}
-
-static void vma_bootstrap_free(void* __unused0__, virt_addr_t __unused1__) { }
-
-static virt_addr_t vma_late_alloc(void* __unused__, size_t size)
-{
-  void* ptr = kmalloc(size);
-  return (virt_addr_t)ptr;
-}
-
-static void vma_late_free(void* __unused__, virt_addr_t virt)
-{
-  kfree((void*)virt);
 }

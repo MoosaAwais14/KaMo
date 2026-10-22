@@ -13,4 +13,7 @@ typedef struct mm_space_s {
 
 extern mm_space_t kernel_mm;
 
+extern void mm_init_early(void);
+extern void mm_init(void);
+
 #endif

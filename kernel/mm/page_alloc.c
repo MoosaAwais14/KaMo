@@ -167,7 +167,13 @@ void free_pages(page_t* page, uint8_t order)
 {
   if (!page || order > MAX_PAGE_ORDER)
     return;
- 
+  
+  if(page->refcount > 0)
+    page->refcount--;
+
+  if(page->refcount != 0)
+    return;
+
   pfn_t pfn = page_to_pfn(page);
   struct buddy_zone_s *zone = get_zone(pfn);
 

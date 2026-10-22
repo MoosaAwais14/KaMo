@@ -17,12 +17,12 @@ typedef struct mmu_space_s {
 } mmu_space_t;
 
 typedef struct mmu_alloc_ops_s {
-    mmu_err_t (*alloc_page)(void *ctx, phys_addr_t* out);
-    void (*release_page)(void *ctx, phys_addr_t paddr);
-    void *ctx;
+    mmu_err_t (*alloc_page)(phys_addr_t* out);
+    void (*release_page)(phys_addr_t paddr);
 } mmu_alloc_ops_t;
 
-extern mmu_err_t mmu_init(mmu_space_t* space, const mmu_alloc_ops_t* alloc_ops);
+extern void mmu_set_allocator(const mmu_alloc_ops_t* alloc_ops);
+extern mmu_err_t mmu_init(mmu_space_t* space);
 extern mmu_err_t mmu_map(mmu_space_t* space, virt_addr_t vaddr, phys_addr_t paddr, size_t size, mmu_flags_t flags);
 extern mmu_err_t mmu_unmap(mmu_space_t* space, virt_addr_t vaddr, size_t size);
 extern mmu_err_t mmu_tlb_invalidate_page(mmu_space_t* space, virt_addr_t vaddr);

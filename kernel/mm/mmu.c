@@ -6,12 +6,15 @@
 
 const mmu_alloc_ops_t* mmu_alloc_ops = NULL;
 
-mmu_err_t mmu_init(mmu_space_t* space, const mmu_alloc_ops_t* alloc_ops)
+void mmu_set_allocator(const mmu_alloc_ops_t* alloc_ops)
 {
-  if(!space || !alloc_ops)
-    return MMU_ERR_BAD_ARG;
-    
   mmu_alloc_ops = alloc_ops;
+}
+
+mmu_err_t mmu_init(mmu_space_t* space)
+{
+  if(!space || !mmu_alloc_ops)
+    return MMU_ERR_BAD_ARG;
 
   return arch_mmu_init(&space->arch);
 }

@@ -6,6 +6,7 @@ $(error OUT is required. Usage: make ... OUT=<dir>)
 endif
 
 SOURCES := 			\
+	mm_init.c 		\
 	earlybump.c		\
 	memblock.c		\
 	page_alloc.c 	\

@@ -23,7 +23,6 @@ mmu_err_t arch_mmu_init(arch_mmu_space_t* space)
 {
   if(!space || !space->cr3 || !IS_ALIGNED(space->cr3, PAGE_SIZE))
     return MMU_ERR_BAD_ARG;
-
   return MMU_OK;
 }
 
@@ -37,11 +36,11 @@ mmu_err_t arch_mmu_preallocate_page_table(arch_mmu_space_t* space, virt_addr_t v
     return pde->ps0.page_size ? MMU_ERR_FIELD_MISMATCH : MMU_OK;
 
   phys_addr_t pt_phys;
-  mmu_err_t alloc_err = mmu_alloc_ops->alloc_page(mmu_alloc_ops->ctx, &pt_phys);
+  mmu_err_t alloc_err = mmu_alloc_ops->alloc_page(&pt_phys);
   if (alloc_err != MMU_OK || !IS_ALIGNED(pt_phys, PAGE_SIZE) || pt_phys > UINT32_MAX) 
   {
     if (alloc_err == MMU_OK && mmu_alloc_ops->release_page)
-      mmu_alloc_ops->release_page(mmu_alloc_ops->ctx, pt_phys);
+      mmu_alloc_ops->release_page(pt_phys);
 
     return MMU_ERR_ALLOCATOR;
   }
@@ -207,7 +206,7 @@ mmu_err_t arch_mmu_unmap(arch_mmu_space_t* space, virt_addr_t vaddr, size_t size
       if(release)
       {
         pde->value = 0;
-        mmu_alloc_ops->release_page(mmu_alloc_ops->ctx, phys_pt);
+        mmu_alloc_ops->release_page(phys_pt);
       }
     }
 
