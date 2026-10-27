@@ -17,7 +17,7 @@ Make is a build automation tool that reads instructions from a Makefile to compi
 ## Repository Structure
 
 - **kernel/**: Kernel source code.
-- **userspace**: Userspace source code.
+- **userspace/**: Userspace source code.
 - **image**: OS image build files.
 - **kamo/**: Main project components
 - **Makefile:** Defines the build process for the project
