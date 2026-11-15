@@ -81,6 +81,9 @@ void __noreturn continue_setup_arch(void)
 
   if (arch_fixmap_init(&kernel_pgd_space.arch) != MMU_OK)
     local_safe_halt();
+  
+  // Note: vma is dependent on slab/slub allocator.
+  vma_init(kernel_mm.vma, (range_t){ .start = VMALLOC_START, .end = VMALLOC_LIMIT - 1 });
 
   setup_bootstrap_paging();
   continue_start_kernel();

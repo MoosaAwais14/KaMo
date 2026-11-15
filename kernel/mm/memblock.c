@@ -64,7 +64,7 @@ memblock_err_t memblock_alloc(size_t size, size_t aligned, range_t* out)
   if (aligned == 0)
     aligned = MEMBLOCK_SIZE;
 
-  if ((aligned & (aligned - 1)) != 0)
+  if ((aligned & (aligned - 1)) != 0 || (aligned < MEMBLOCK_SIZE))
     return MEMBLOCK_ERR_INVALID;
 
   if(disabled)
@@ -114,7 +114,7 @@ memblock_err_t memblock_alloc_range(size_t size, size_t aligned, range_t range, 
   if (aligned == 0)
     aligned = MEMBLOCK_SIZE;
 
-  if ((aligned & (aligned - 1)) != 0)
+  if ((aligned & (aligned - 1)) != 0 || (aligned < MEMBLOCK_SIZE))
     return MEMBLOCK_ERR_INVALID;
 
   if (range.end < range.start)
@@ -409,7 +409,7 @@ static uint8_t memblock_find_free_in_range(const range_t* memory_range, size_t s
   if (aligned == 0)
     aligned = MEMBLOCK_SIZE;
 
-  if ((aligned & (aligned - 1)) != 0)
+  if ((aligned & (aligned - 1)) != 0 || (aligned < MEMBLOCK_SIZE))
     return 0;
 
   phys_addr_t limit = memory_range->end;

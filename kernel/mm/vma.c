@@ -33,7 +33,7 @@ vma_node_t* vma_alloc_region(vma_space_t* vma_space, size_t size, size_t aligned
   if (aligned == 0)
     aligned = VMA_SIZE;
 
-  if ((aligned & (aligned - 1)) != 0)
+  if ((aligned & (aligned - 1)) != 0 || (aligned < VMA_SIZE))
     return NULL;
 
   if (range.end < range.start)
@@ -203,7 +203,7 @@ static uint8_t vma_find_free_in_range(const rb_tree_t* tree, const range_t* memo
   if (aligned == 0)
     aligned = VMA_SIZE;
 
-  if ((aligned & (aligned - 1)) != 0)
+  if ((aligned & (aligned - 1)) != 0 || (aligned < VMA_SIZE))  
     return 0;
 
   virt_addr_t limit = memory_range->end;
