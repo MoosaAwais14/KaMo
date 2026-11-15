@@ -18,9 +18,15 @@ typedef struct vma_space_s {
 
 typedef struct vma_node_s {
   range_t range;
-  page_t* pages;
+  uint32_t flags;
+  rb_tree_node_t* rb_owner;
 } vma_node_t;
 
 extern void vma_init(vma_space_t* vma_space, range_t virtual_limits);
+
+extern vma_node_t* vma_alloc_region(vma_space_t* vma_space, size_t size, size_t aligned, range_t range, uint32_t flags);
+extern int vma_free_region(vma_space_t* vma_space, vma_node_t* vma_node);
+
+extern vma_node_t* vma_find(vma_space_t* vma_space, virt_addr_t address);
 
 #endif

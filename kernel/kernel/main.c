@@ -36,6 +36,7 @@ void __noreturn continue_start_kernel(void)
   mm_init();
   mmu_set_allocator(&mmu_page_alloc_ops);
   slab_init();
+  // vma_init(kernel_mm.vma, <kernel_range>);
 
   // arch_exception_init(); // Update "early" exception vectors with proper handling
   irq_init();
