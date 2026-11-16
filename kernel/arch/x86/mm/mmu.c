@@ -7,11 +7,29 @@
 
 #include <lib/memory.h>
 
-static inline void arch_mmu_decode_flags(mmu_flags_t flags, uint8_t* present, uint8_t* rw, uint8_t* user, uint8_t* pwt, uint8_t* pcd, uint8_t* pat, uint8_t* global);
+#define CPUID_LEAF_FEATURES        1u
+#define CPUID_FEATURE_PAT          (1u << 16)
+#define IA32_PAT_MSR               0x277u
+#define IA32_PAT_TYPE_UC           0u
+#define IA32_PAT_TYPE_WT           4u
+#define IA32_PAT_TYPE_WB           6u
+#define IA32_PAT_TYPE_WC           1u
+#define IA32_PAT_ENTRY_SHIFT(index) ((index) * 8u)
+#define IA32_PAT_ENTRY_MASK(index)  (0xffull << IA32_PAT_ENTRY_SHIFT(index))
+
+static uint8_t arch_mmu_cache_ready;
+static uint8_t arch_mmu_pat_available;
+
+static inline mmu_err_t arch_mmu_decode_flags(mmu_flags_t flags, uint8_t* present, uint8_t* rw, uint8_t* user, uint8_t* pwt, uint8_t* pcd, uint8_t* pat, uint8_t* global);
 
 static inline void arch_mmu_build_huge_pde(page_directory_entry_t* pde, phys_addr_t paddr, uint8_t present, uint8_t rw, uint8_t user, uint8_t pwt, uint8_t pcd, uint8_t pat, uint8_t page_size, uint8_t global);
 static inline void arch_mmu_build_pt_pde(page_directory_entry_t *pde, phys_addr_t pt_phys, uint8_t present, uint8_t rw, uint8_t user, uint8_t pwt, uint8_t pcd);
 static inline void arch_mmu_build_small_pte(page_table_entry_t* pte, phys_addr_t paddr, uint8_t present, uint8_t rw, uint8_t user, uint8_t pwt, uint8_t pcd, uint8_t pat, uint8_t global);
+
+static inline void arch_mmu_cpuid(uint32_t leaf, uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx);
+static inline uint64_t arch_mmu_read_msr(uint32_t msr);
+static inline void arch_mmu_write_msr(uint32_t msr, uint64_t value);
+static inline uint64_t arch_mmu_pat_set_entry(uint64_t pat, uint8_t index, uint8_t type);
 
 static inline virt_addr_t arch_mmu_phys_map(arch_mmu_space_t* space, phys_addr_t paddr);
 static inline void arch_mmu_phys_unmap(arch_mmu_space_t* space, virt_addr_t vaddr);
@@ -23,6 +41,55 @@ mmu_err_t arch_mmu_init(arch_mmu_space_t* space)
 {
   if(!space || !space->cr3 || !IS_ALIGNED(space->cr3, PAGE_SIZE))
     return MMU_ERR_BAD_ARG;
+  return MMU_OK;
+}
+
+mmu_err_t arch_mmu_cache_init(arch_mmu_space_t* space)
+{
+  if (!space || read_cr3() != space->cr3)
+    return MMU_ERR_BAD_ARG;
+
+  uint32_t eax, ebx, ecx, edx;
+  arch_mmu_cpuid(0, &eax, &ebx, &ecx, &edx);
+  if (eax < CPUID_LEAF_FEATURES)
+  {
+    arch_mmu_pat_available = 0;
+    arch_mmu_cache_ready = 1;
+    return MMU_OK;
+  }
+
+  arch_mmu_cpuid(CPUID_LEAF_FEATURES, &eax, &ebx, &ecx, &edx);
+  arch_mmu_pat_available = (edx & CPUID_FEATURE_PAT) != 0;
+
+  if (arch_mmu_pat_available)
+  {
+    uint64_t pat = arch_mmu_read_msr(IA32_PAT_MSR);
+
+    pat = arch_mmu_pat_set_entry(pat, 0, IA32_PAT_TYPE_WB);
+    pat = arch_mmu_pat_set_entry(pat, 1, IA32_PAT_TYPE_WT);
+    pat = arch_mmu_pat_set_entry(pat, 3, IA32_PAT_TYPE_UC);
+    pat = arch_mmu_pat_set_entry(pat, 4, IA32_PAT_TYPE_WC);
+
+    uint64_t old_pat = arch_mmu_read_msr(IA32_PAT_MSR);
+    if (pat != old_pat)
+    {
+      __asm__ volatile("wbinvd" ::: "memory");
+      arch_mmu_write_msr(IA32_PAT_MSR, pat);
+      if (arch_mmu_read_msr(IA32_PAT_MSR) != pat)
+      {
+        arch_mmu_cache_ready = 0;
+        return MMU_ERR_NO_RESOURCES;
+      }
+
+      if (arch_mmu_tlb_flush(space) != MMU_OK)
+      {
+        arch_mmu_cache_ready = 0;
+        return MMU_ERR_NO_RESOURCES;
+      }
+    }
+  }
+
+  arch_mmu_cache_ready = 1;
   return MMU_OK;
 }
 
@@ -232,7 +299,9 @@ static inline mmu_err_t arch_mmu_map_small(arch_mmu_space_t* space, virt_addr_t 
     return MMU_ERR_FIELD_MISMATCH;
 
   uint8_t present, rw, user, pwt, pcd, pat, global;
-  arch_mmu_decode_flags(flags, &present, &rw, &user, &pwt, &pcd, &pat, &global);
+  mmu_err_t decode_err = arch_mmu_decode_flags(flags, &present, &rw, &user, &pwt, &pcd, &pat, &global);
+  if (decode_err != MMU_OK)
+    return decode_err;
 
   if (!pde->ps0.present) {
     mmu_err_t err = arch_mmu_preallocate_page_table(space, vaddr);
@@ -263,7 +332,9 @@ static inline mmu_err_t arch_mmu_map_huge(arch_mmu_space_t* space, virt_addr_t v
     return MMU_ERR_FIELD_MISMATCH;
 
   uint8_t present, rw, user, pwt, pcd, pat, global;
-  arch_mmu_decode_flags(flags, &present, &rw, &user, &pwt, &pcd, &pat, &global);
+  mmu_err_t decode_err = arch_mmu_decode_flags(flags, &present, &rw, &user, &pwt, &pcd, &pat, &global);
+  if (decode_err != MMU_OK)
+    return decode_err;
 
   arch_mmu_build_huge_pde(pde, paddr, present, rw, user, pwt, pcd, pat, 1, global);    
 
@@ -342,7 +413,7 @@ static inline void arch_mmu_build_small_pte(page_table_entry_t* pte, phys_addr_t
   pte->bits = entry;
 }
 
-static inline void arch_mmu_decode_flags(mmu_flags_t flags, uint8_t* present, uint8_t* rw, uint8_t* user, uint8_t* pwt, uint8_t* pcd, uint8_t* pat, uint8_t* global)
+static inline mmu_err_t arch_mmu_decode_flags(mmu_flags_t flags, uint8_t* present, uint8_t* rw, uint8_t* user, uint8_t* pwt, uint8_t* pcd, uint8_t* pat, uint8_t* global)
 {
   *present = (flags & MMU_FLAG_READ) != 0;
   *rw      = (flags & MMU_FLAG_WRITE) != 0;
@@ -354,18 +425,57 @@ static inline void arch_mmu_decode_flags(mmu_flags_t flags, uint8_t* present, ui
   *pat = 0;
 
   mmu_flags_t cache = flags & MMU_FLAG_CACHE_MASK;
+  if (!arch_mmu_cache_ready && cache != MMU_FLAG_CACHE_WB)
+    return MMU_ERR_UNSUPPORTED;
 
-  if(cache == MMU_FLAG_CACHE_WT)
+  if (cache == MMU_FLAG_CACHE_WT)
   {
     *pwt = 1;
   }
-  else if(cache == MMU_FLAG_CACHE_UC)
+  else if (cache == MMU_FLAG_CACHE_UC)
   {
     *pcd = 1;
-  }
-  else if(cache == MMU_FLAG_CACHE_WC)
-  {
     *pwt = 1;
-    *pcd = 1;
   }
+  else if (cache == MMU_FLAG_CACHE_WC)
+  {
+    if (!arch_mmu_pat_available)
+      return MMU_ERR_UNSUPPORTED;
+
+    *pat = 1;
+  }
+
+  return MMU_OK;
+}
+
+static inline void arch_mmu_cpuid(uint32_t leaf, uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx)
+{
+  __asm__ volatile("cpuid"
+                   : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
+                   : "a"(leaf), "c"(0)
+                   : "memory");
+}
+
+static inline uint64_t arch_mmu_read_msr(uint32_t msr)
+{
+  uint32_t low, high;
+  __asm__ volatile("rdmsr"
+                   : "=a"(low), "=d"(high)
+                   : "c"(msr)
+                   : "memory");
+  return ((uint64_t)high << 32) | low;
+}
+
+static inline void arch_mmu_write_msr(uint32_t msr, uint64_t value)
+{
+  __asm__ volatile("wrmsr"
+                   :
+                   : "c"(msr), "a"((uint32_t)value), "d"((uint32_t)(value >> 32))
+                   : "memory");
+}
+
+static inline uint64_t arch_mmu_pat_set_entry(uint64_t pat, uint8_t index, uint8_t type)
+{
+  uint32_t shift = IA32_PAT_ENTRY_SHIFT(index);
+  return (pat & ~IA32_PAT_ENTRY_MASK(index)) | ((uint64_t)type << shift);
 }

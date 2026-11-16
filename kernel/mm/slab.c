@@ -20,10 +20,8 @@ struct slab_s {
   struct cache_s cache[SLAB_INDEX_COUNT];
 };
 
-static inline slab_index_t get_slab_index(size_t size);
-static inline size_t get_slab_size(slab_index_t slab_index);
-
 static void create_slab(slab_index_t slab_index);
+static void remove_slab_free_objects(struct cache_s* cache, page_t* head);
 
 static struct slab_s slab;
 
@@ -42,7 +40,7 @@ void* kmalloc(size_t size) {
   unsigned long irq_flags = raw_spin_lock_irqsave(&cache->rlock);
 
   struct free_slab_s* slab = cache->free_list;
-  if (!slab) 
+  if (!slab)
   {
     create_slab(slab_index);
     if (!cache->free_list) 
@@ -52,16 +50,17 @@ void* kmalloc(size_t size) {
     }
     slab = cache->free_list;
   }
-  else
-  {
-    page_t* page = pfn_to_page(PHYS_PFN(___pa(slab)));
-    if (page) 
-    {
-      page->refcount++;
-    }
-  }
 
   cache->free_list = slab->next;
+
+  page_t* page = pfn_to_page(PHYS_PFN(___pa(slab)));
+  page_t* head = page ? page->compound_head : NULL;
+  if (!head || !(head->flags & PAGE_FLAG_SLAB_ALLOCATION) || head->slab_index != slab_index)
+  {
+    raw_spin_unlock_irqrestore(&cache->rlock, irq_flags);
+    return NULL;
+  }
+  head->refcount++;
 
   raw_spin_unlock_irqrestore(&cache->rlock, irq_flags);
 
@@ -75,24 +74,33 @@ void kfree(void* ptr)
 
   pfn_t pfn = PHYS_PFN(__pa(ptr));
   page_t* page = pfn_to_page(pfn);
-
-  if (!page || !(page->flags & PAGE_FLAG_SLAB_ALLOCATION))
+  page_t* head = page ? page->compound_head : NULL;
+  if (!head || !(head->flags & PAGE_FLAG_SLAB_ALLOCATION))
     return;
 
-  slab_index_t slab_index = page->slab_index;
+  slab_index_t slab_index = (slab_index_t)head->slab_index;
+  if (slab_index >= SLAB_INDEX_COUNT)
+    return;
   
   struct cache_s* cache = &slab.cache[slab_index];
   unsigned long irq_flags = raw_spin_lock_irqsave(&cache->rlock);
 
+  if (head->refcount == 0)
+  {
+    raw_spin_unlock_irqrestore(&cache->rlock, irq_flags);
+    return;
+  }
+
   struct free_slab_s* slab = (struct free_slab_s*)ptr;
   slab->next = cache->free_list;
   cache->free_list = slab;
-
-  if (page->refcount > 0)
-    page->refcount--;
-
-  if (page->refcount == 0)
-    free_pages(page, page->order);
+  head->refcount--;
+  if (head->refcount == 0)
+  {
+    remove_slab_free_objects(cache, head);
+    head->refcount = 1;
+    free_pages(head, head->order);
+  }
 
   raw_spin_unlock_irqrestore(&cache->rlock, irq_flags);
 }
@@ -106,12 +114,9 @@ static void create_slab(slab_index_t slab_index)
   page_t* pages = alloc_pages(ZONE_NORMAL, (uint8_t)order); 
   if (!pages) return;
 
-  size_t num_pages = 1UL << order;
-  for (size_t i = 0; i < num_pages; i++) 
-  {
-    pages[i].slab_index = slab_index;
-    pages[i].flags |= PAGE_FLAG_SLAB_ALLOCATION;
-  }
+  pages->slab_index = slab_index;
+  pages->flags |= PAGE_FLAG_SLAB_ALLOCATION;
+  pages->refcount = 0;
 
   struct cache_s* cache = &slab.cache[slab_index];
 
@@ -129,22 +134,22 @@ static void create_slab(slab_index_t slab_index)
   }
 }
 
-static inline slab_index_t get_slab_index(size_t size)
+static void remove_slab_free_objects(struct cache_s* cache, page_t* head)
 {
-  if (size <= 16)   return SLAB_INDEX_16;
-  if (size <= 32)   return SLAB_INDEX_32;
-  if (size <= 64)   return SLAB_INDEX_64;
-  if (size <= 128)  return SLAB_INDEX_128;
-  if (size <= 256)  return SLAB_INDEX_256;
-  if (size <= 512)  return SLAB_INDEX_512;
-  if (size <= 1024) return SLAB_INDEX_1024;
-  if (size <= 2048) return SLAB_INDEX_2048;
-  if (size <= 4096) return SLAB_INDEX_4096;
-  if (size <= 8192) return SLAB_INDEX_8192;
-  return SLAB_INDEX_COUNT;
-}
+  uintptr_t slab_start = (uintptr_t)__va(PFN_PHYS(page_to_pfn(head)));
+  uintptr_t slab_end = slab_start + order_to_size(head->order);
+  struct free_slab_s** link = &cache->free_list;
 
-static inline size_t get_slab_size(slab_index_t slab_index)
-{
-  return (16UL << slab_index);
+  while (*link)
+  {
+    struct free_slab_s* object = *link;
+    uintptr_t address = (uintptr_t)object;
+    if (address >= slab_start && address < slab_end)
+    {
+      *link = object->next;
+      continue;
+    }
+
+    link = &object->next;
+  }
 }

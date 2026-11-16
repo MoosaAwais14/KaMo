@@ -30,7 +30,7 @@ vma_node_t* vma_alloc_region(vma_space_t* vma_space, size_t size, size_t aligned
   if (aligned == 0)
     aligned = VMA_SIZE;
 
-  if ((aligned & (aligned - 1)) != 0 || (aligned < VMA_SIZE))
+  if ((aligned & (aligned - 1)) != 0)
     return NULL;
 
   if (range.end < range.start)
@@ -72,14 +72,56 @@ int vma_free_region(vma_space_t* vma_space, vma_node_t* vma_node)
     return -1;
 
   unsigned long irq_flags = raw_spin_lock_irqsave(&vma_space->rlock);
-  int ret = vma_node->rb_owner && vma_node->rb_owner->data == vma_node
+  int ret = !(vma_node->flags & (VMA_FLAG_VMAP | VMA_FLAG_FREEING)) &&
+            vma_node->rb_owner && vma_node->rb_owner->data == vma_node
     ? vma_remove(&vma_space->busy_tree, vma_node->rb_owner)
     : -1;
   raw_spin_unlock_irqrestore(&vma_space->rlock, irq_flags);
   return ret;
 }
 
-vma_node_t* vma_find(vma_space_t* vma_space, virt_addr_t address)
+int vma_free_claimed_region(vma_space_t* vma_space, vma_node_t* vma_node)
+{
+  if (!vma_space || !vma_node)
+    return -1;
+
+  unsigned long irq_flags = raw_spin_lock_irqsave(&vma_space->rlock);
+  int ret = (vma_node->flags & (VMA_FLAG_VMAP | VMA_FLAG_FREEING)) ==
+            (VMA_FLAG_VMAP | VMA_FLAG_FREEING) &&
+            vma_node->rb_owner && vma_node->rb_owner->data == vma_node
+    ? vma_remove(&vma_space->busy_tree, vma_node->rb_owner)
+    : -1;
+  raw_spin_unlock_irqrestore(&vma_space->rlock, irq_flags);
+  return ret;
+}
+
+int vma_set_mapping(vma_space_t* vma_space, vma_node_t* vma_node, page_t** pages, size_t nr_pages, vma_flags_t flags, page_t* page_array_storage, uint8_t page_array_order)
+{
+  if (!vma_space || !vma_node || !pages || nr_pages == 0 || !(flags & VMA_FLAG_VMAP))
+    return -1;
+
+  if ((flags & VMA_FLAG_VMALLOC) && (!page_array_storage || page_array_order > MAX_PAGE_ORDER))
+    return -1;
+
+  unsigned long irq_flags = raw_spin_lock_irqsave(&vma_space->rlock);
+  if (!vma_node->rb_owner || vma_node->rb_owner->data != vma_node ||
+      (vma_node->flags & VMA_FLAG_FREEING))
+  {
+    raw_spin_unlock_irqrestore(&vma_space->rlock, irq_flags);
+    return -1;
+  }
+
+  vma_node->pages = pages;
+  vma_node->nr_pages = nr_pages;
+  vma_node->page_array_storage = page_array_storage;
+  vma_node->page_array_order = page_array_order;
+  vma_node->flags = flags & ~VMA_FLAG_FREEING;
+
+  raw_spin_unlock_irqrestore(&vma_space->rlock, irq_flags);
+  return 0;
+}
+
+vma_node_t* vma_claim_region(vma_space_t* vma_space, virt_addr_t address, vma_flags_t required_flags)
 {
   if (!vma_space)
     return NULL;
@@ -90,17 +132,23 @@ vma_node_t* vma_find(vma_space_t* vma_space, virt_addr_t address)
   };
 
   unsigned long irq_flags = raw_spin_lock_irqsave(&vma_space->rlock);
+  rb_tree_node_t* overlap = NULL;
 
-  if(vma_space->limits.start > address || vma_space->limits.end < address)
+  if (address >= vma_space->limits.start && address <= vma_space->limits.end)
+    overlap = vma_find_overlap(&vma_space->busy_tree, &requested);
+
+  vma_node_t* vma_node = overlap ? (vma_node_t*)overlap->data : NULL;
+  if (!vma_node || vma_node->range.start != address ||
+      (vma_node->flags & required_flags) != required_flags ||
+      (vma_node->flags & VMA_FLAG_FREEING))
   {
     raw_spin_unlock_irqrestore(&vma_space->rlock, irq_flags);
     return NULL;
   }
 
-  rb_tree_node_t* overlap = vma_find_overlap(&vma_space->busy_tree, &requested);
-
+  vma_node->flags |= VMA_FLAG_FREEING;
   raw_spin_unlock_irqrestore(&vma_space->rlock, irq_flags);
-  return overlap ? ((vma_node_t*)overlap->data) : NULL;
+  return vma_node;
 }
 
 static rb_tree_node_t* vma_add(rb_tree_t* tree, range_t range)
@@ -182,7 +230,7 @@ static uint8_t vma_find_free_in_range(const rb_tree_t* tree, const range_t* memo
   if (aligned == 0)
     aligned = VMA_SIZE;
 
-  if ((aligned & (aligned - 1)) != 0 || (aligned < VMA_SIZE))  
+  if ((aligned & (aligned - 1)) != 0)
     return 0;
 
   virt_addr_t limit = memory_range->end;

@@ -1,7 +1,6 @@
-#include "kernel/address.h"
-#include "mm/mmu_types.h"
 #include <kernel/start_kernel.h>
 #include <kernel/interrupt.h>
+#include <kernel/cpu.h>
 #include <kernel/irq.h>  
 
 #include <mm/mm.h>
@@ -13,6 +12,7 @@
 #include <asm/irqflags.h>
 #include <asm/setup.h>
 #include <asm/exception.h>
+#include <lib/string.h>
 
 static mmu_err_t mmu_alloc_page(phys_addr_t* out);
 static void mmu_release_page(phys_addr_t paddr);
@@ -50,15 +50,13 @@ void __noreturn continue_start_kernel(void)
   slab_init();
   vmalloc_init();
 
+  if(cpu_init(0, &kernel_mm))
+  {
+    local_safe_halt();
+  }
+
   // arch_exception_init(); // Update "early" exception vectors with proper handling
   irq_init();
-
-  if(1)
-  {
-    virt_addr_t v = (virt_addr_t)vmalloc(0x1000, 1000);
-    mmu_map(kernel_mm.mmu, v, 0xB8000, 0x1000, MMU_FLAG_READ | MMU_FLAG_WRITE);
-    vga_print((volatile unsigned short *)v, "Hello, World!");
-  }
 
   local_safe_halt();
 }

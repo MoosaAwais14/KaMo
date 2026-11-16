@@ -12,7 +12,8 @@ typedef enum mmu_err_e
   MMU_ERR_ALLOCATOR,
   MMU_ERR_NOT_MAPPED,
   MMU_ERR_FIELD_MISMATCH,
-  MMU_ERR_NO_RESOURCES
+  MMU_ERR_NO_RESOURCES,
+  MMU_ERR_UNSUPPORTED
 } mmu_err_t;
 
 typedef uint64_t mmu_flags_t;

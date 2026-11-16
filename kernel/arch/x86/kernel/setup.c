@@ -133,6 +133,8 @@ static void setup_bootstrap_paging(void)
     local_safe_halt();
 
   load_cr3(kernel_pgd_space.arch.cr3);
+  if (arch_mmu_cache_init(&kernel_pgd_space.arch) != MMU_OK)
+    local_safe_halt();
 }
 
 static int setup_boot_reserves(void)

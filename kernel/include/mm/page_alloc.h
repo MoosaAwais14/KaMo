@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <mm/mmu_types.h>
 #include <kernel/address.h>
 #include <asm/page_alloc.h>
 
@@ -19,18 +20,31 @@ typedef enum {
   PAGE_ALLOC_ERR_INVALID
 } page_alloc_err_t;
 
+typedef enum {
+  PAGE_STATE_INVALID = 0,
+  PAGE_STATE_RESERVED,
+  PAGE_STATE_ALLOCATED_HEAD,
+  PAGE_STATE_ALLOCATED_TAIL,
+  PAGE_STATE_FREE_HEAD,
+  PAGE_STATE_FREE_TAIL
+} page_state_t;
+
 typedef struct page_s {
   struct page_s* prev;
   struct page_s* next; 
+  struct page_s* compound_head;
   size_t refcount;
-  uint8_t order;
-  int slab_index;
   uint32_t flags;
+  uint8_t order;
+  uint8_t state;
+  uint8_t slab_index;
 } page_t;
 
-#define PAGE_FLAG_UNKOWN          (1u << 0)
+#define PAGE_SLAB_INDEX_NONE     UINT8_MAX
+#define PAGE_FLAG_GENERIC         (1u << 0)
 #define PAGE_FLAG_MMU_ALLOCATION  (1u << 1)
 #define PAGE_FLAG_SLAB_ALLOCATION (1u << 2)
+#define PAGE_FLAG_IO              (1u << 3)
 
 typedef unsigned long pfn_t;
 

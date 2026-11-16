@@ -32,6 +32,7 @@ struct page_alloc_s {
 
 static inline void list_add(page_t** head, page_t* page);
 static inline void list_remove(page_t** head, page_t* page);
+static void set_page_block(page_t* head, uint8_t order, page_state_t head_state, page_state_t tail_state);
 
 static struct buddy_zone_s* get_zone(pfn_t pfn);
 
@@ -56,9 +57,11 @@ page_alloc_err_t page_alloc_init(void)
   }
 
   pfn_t base_pfn = PHYS_PFN(ALIGN_UP(mem_phys.start, PAGE_SIZE));
-  pfn_t end_pfn_excl = PHYS_PFN(ALIGN_DOWN(mem_phys.end + 1, PAGE_SIZE));
+  pfn_t end_pfn_excl = PHYS_PFN(mem_phys.end) + ((mem_phys.end & (PAGE_SIZE - 1)) == PAGE_SIZE - 1);
 
   size_t page_count = end_pfn_excl - base_pfn;
+  if (page_count == 0 || page_count > SIZE_MAX / sizeof(page_t))
+    return PAGE_ALLOC_ERR_INVALID;
 
   page_alloc.base_pfn = base_pfn;
   page_alloc.total_pages = page_count;
@@ -70,45 +73,53 @@ page_alloc_err_t page_alloc_init(void)
   page_alloc.page_array = __va(page_array_range.start);
   memset(page_alloc.page_array, 0, page_alloc.total_pages * sizeof(page_t));
 
-  memblock_iter_t ires;
-  range_t res_range;
-  if (memblock_reserved_first(&ires, &res_range) == MEMBLOCK_OK) 
+  if (memblock_memory_first(&imem, &mem_range) == MEMBLOCK_OK)
   {
-    do 
+    do
     {
-      pfn_t res_start = PHYS_PFN(ALIGN_UP(res_range.start, PAGE_SIZE));
-      pfn_t res_end = PHYS_PFN(ALIGN_DOWN(res_range.end + 1, PAGE_SIZE));
+      pfn_t mem_start = PHYS_PFN(ALIGN_UP(mem_range.start, PAGE_SIZE));
+      pfn_t mem_end = PHYS_PFN(mem_range.end) + ((mem_range.end & (PAGE_SIZE - 1)) == PAGE_SIZE - 1);
 
-      for (pfn_t pfn = res_start; pfn < res_end; pfn++) 
+      for (pfn_t pfn = mem_start; pfn < mem_end; pfn++)
       {
         page_t* page = pfn_to_page(pfn);
+        if (!page)
+          continue;
 
-        if (pfn >= page_alloc.base_pfn && pfn < page_alloc.base_pfn + page_alloc.total_pages) 
+        page->state = PAGE_STATE_ALLOCATED_HEAD;
+        page->compound_head = page;
+        page->refcount = 1;
+      }
+    } while (memblock_memory_next(&imem, &mem_range) == MEMBLOCK_OK);
+  }
+
+  memblock_iter_t ires;
+  range_t res_range;
+  if (memblock_reserved_first(&ires, &res_range) == MEMBLOCK_OK)
+  {
+    do
+    {
+      pfn_t res_start = PHYS_PFN(res_range.start);
+      pfn_t res_end = PHYS_PFN(res_range.end) + 1;
+
+      for (pfn_t pfn = res_start; pfn < res_end; pfn++)
+      {
+        page_t* page = pfn_to_page(pfn);
+        if (page && page->state != PAGE_STATE_INVALID)
         {
-          page->refcount = 1;
-          page->flags = PAGE_FLAG_UNKOWN;
+          page->state = PAGE_STATE_RESERVED;
+          page->compound_head = page;
+          page->refcount = 0;
         }
       }
     } while (memblock_reserved_next(&ires, &res_range) == MEMBLOCK_OK);
   }
 
-  if (memblock_memory_first(&imem, &mem_range) == MEMBLOCK_OK) 
+  for (pfn_t pfn = base_pfn; pfn < end_pfn_excl; pfn++)
   {
-    do 
-    {
-      pfn_t mem_start = PHYS_PFN(ALIGN_UP(mem_range.start, PAGE_SIZE));
-      pfn_t mem_end = PHYS_PFN(ALIGN_DOWN(mem_range.end + 1, PAGE_SIZE));
-
-      for (pfn_t pfn = mem_start; pfn < mem_end; pfn++) 
-      {
-        page_t* page = pfn_to_page(pfn);
-
-        if (page->refcount == 0) 
-        {
-          free_pages(page, 0);
-        }
-      }
-    } while (memblock_memory_next(&imem, &mem_range) == MEMBLOCK_OK);
+    page_t* page = pfn_to_page(pfn);
+    if (page && page->state == PAGE_STATE_ALLOCATED_HEAD)
+      free_pages(page, 0);
   }
 
   return PAGE_ALLOC_OK;
@@ -147,17 +158,18 @@ page_t* alloc_pages(zone_type_t zone_type, uint8_t order)
     pfn_t buddy_pfn = page_to_pfn(page) + (1UL << current_order);
     page_t *buddy = pfn_to_page(buddy_pfn);
 
-    buddy->order = current_order;
-    buddy->refcount = 0;
+    set_page_block(buddy, current_order, PAGE_STATE_FREE_HEAD, PAGE_STATE_FREE_TAIL);
 
     list_add(&zone->orders[current_order].area.free_list, buddy);
     zone->orders[current_order].area.nr_free++;
     zone->free_pages += (1UL << current_order);
   }
 
+  set_page_block(page, order, PAGE_STATE_ALLOCATED_HEAD, PAGE_STATE_ALLOCATED_TAIL);
   page->order = order;
   page->refcount = 1;
-  page->flags = PAGE_FLAG_UNKOWN;
+  page->flags = PAGE_FLAG_GENERIC;
+  page->slab_index = PAGE_SLAB_INDEX_NONE;
 
   raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
   return page;
@@ -167,12 +179,6 @@ void free_pages(page_t* page, uint8_t order)
 {
   if (!page || order > MAX_PAGE_ORDER)
     return;
-  
-  if(page->refcount > 0)
-    page->refcount--;
-
-  if(page->refcount != 0)
-    return;
 
   pfn_t pfn = page_to_pfn(page);
   struct buddy_zone_s *zone = get_zone(pfn);
@@ -181,6 +187,21 @@ void free_pages(page_t* page, uint8_t order)
     return;
 
   unsigned long irq_flags = raw_spin_lock_irqsave(&zone->rlock);
+
+  if (page->state != PAGE_STATE_ALLOCATED_HEAD || page->order != order || page->refcount == 0)
+  {
+    raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
+    return;
+  }
+
+  page->refcount--;
+  if (page->refcount != 0)
+  {
+    raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
+    return;
+  }
+
+  const size_t released_pages = 1UL << order;
 
   while (order < MAX_PAGE_ORDER) 
   {
@@ -193,7 +214,8 @@ void free_pages(page_t* page, uint8_t order)
 
     page_t *buddy = pfn_to_page(buddy_pfn);
 
-    if (buddy->refcount != 0 || buddy->order != order) 
+    if (!buddy || get_zone(buddy_pfn) != zone ||
+        buddy->state != PAGE_STATE_FREE_HEAD || buddy->order != order)
     {
       break;
     }
@@ -210,13 +232,12 @@ void free_pages(page_t* page, uint8_t order)
     order++;
   }
 
+  set_page_block(page, order, PAGE_STATE_FREE_HEAD, PAGE_STATE_FREE_TAIL);
   page->order = order;
-  page->refcount = 0;
-  page->flags = 0;
 
   list_add(&zone->orders[order].area.free_list, page);
   zone->orders[order].area.nr_free++;
-  zone->free_pages += (1UL << order);
+  zone->free_pages += released_pages;
 
   raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
 }
@@ -245,6 +266,29 @@ static struct buddy_zone_s* get_zone(pfn_t pfn)
     return &page_alloc.zones[ZONE_NORMAL];
 
   return &page_alloc.zones[ZONE_HIGHMEM];
+}
+
+static void set_page_block(page_t* head, uint8_t order, page_state_t head_state, page_state_t tail_state)
+{
+  const size_t page_count = 1UL << order;
+
+  for (size_t i = 0; i < page_count; i++)
+  {
+    page_t* page = pfn_to_page(page_to_pfn(head) + i);
+    if (!page)
+      continue;
+
+    page->prev = NULL;
+    page->next = NULL;
+    page->compound_head = head;
+    page->refcount = 0;
+    page->order = 0;
+    page->state = i == 0 ? head_state : tail_state;
+    page->flags = 0;
+    page->slab_index = PAGE_SLAB_INDEX_NONE;
+  }
+
+  head->order = order;
 }
 
 static inline void list_add(page_t** head, page_t* page) 

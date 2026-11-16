@@ -12,6 +12,7 @@ typedef struct arch_mmu_space_s {
 } arch_mmu_space_t;
 
 extern mmu_err_t arch_mmu_init(arch_mmu_space_t* space);
+extern mmu_err_t arch_mmu_cache_init(arch_mmu_space_t* space);
 extern mmu_err_t arch_mmu_preallocate_page_table(arch_mmu_space_t* space, virt_addr_t vaddr);
 extern mmu_err_t arch_mmu_map(arch_mmu_space_t* space, virt_addr_t vaddr, phys_addr_t paddr, size_t size, mmu_flags_t flags);
 extern mmu_err_t arch_mmu_unmap(arch_mmu_space_t* space, virt_addr_t vaddr, size_t size);
