@@ -6,6 +6,6 @@
 
 extern void vmalloc_init(void);
 
-extern void* vmalloc(size_t size);
+extern void* vmalloc(size_t size, uint32_t flags);
 
 #endif

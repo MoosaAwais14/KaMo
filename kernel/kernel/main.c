@@ -1,3 +1,5 @@
+#include "kernel/address.h"
+#include "mm/mmu_types.h"
 #include <kernel/start_kernel.h>
 #include <kernel/interrupt.h>
 #include <kernel/irq.h>  
@@ -5,6 +7,7 @@
 #include <mm/mm.h>
 #include <mm/slab.h>
 #include <mm/mmu.h>
+#include <mm/vmalloc.h>
 
 #include <asm/cpu.h>
 #include <asm/irqflags.h>
@@ -31,14 +34,31 @@ void __noreturn start_kernel(void)
   local_safe_halt();
 }
 
+void vga_print(volatile unsigned short *buffer, const char *str)
+{
+    while (*str)
+    {
+        *buffer++ = (0x07 << 8) | *str++;
+    }
+}
+
 void __noreturn continue_start_kernel(void)
 {
   mm_init();
   mmu_set_allocator(&mmu_page_alloc_ops);
+
   slab_init();
+  vmalloc_init();
 
   // arch_exception_init(); // Update "early" exception vectors with proper handling
   irq_init();
+
+  if(1)
+  {
+    virt_addr_t v = (virt_addr_t)vmalloc(0x1000, 1000);
+    mmu_map(kernel_mm.mmu, v, 0xB8000, 0x1000, MMU_FLAG_READ | MMU_FLAG_WRITE);
+    vga_print((volatile unsigned short *)v, "Hello, World!");
+  }
 
   local_safe_halt();
 }

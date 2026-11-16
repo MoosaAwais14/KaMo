@@ -64,7 +64,7 @@ page_alloc_err_t page_alloc_init(void)
   page_alloc.total_pages = page_count;
 
   range_t page_array_range;
-  if(memblock_alloc_range(page_alloc.total_pages * sizeof(page_t), _Alignof(page_t), phys_direct_map_range, &page_array_range) != MEMBLOCK_OK)
+  if(memblock_alloc_range(page_alloc.total_pages * sizeof(page_t), 0, phys_direct_map_range, &page_array_range) != MEMBLOCK_OK)
     return PAGE_ALLOC_ERR_NOMEM;
 
   page_alloc.page_array = __va(page_array_range.start);

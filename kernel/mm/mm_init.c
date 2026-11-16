@@ -17,7 +17,9 @@ void mm_init_early(void)
 void mm_init(void)
 {
   if(page_alloc_init() != PAGE_ALLOC_OK)
+  {
     local_safe_halt();
+  }
 
   memblock_disable();
   earlybump_disable();

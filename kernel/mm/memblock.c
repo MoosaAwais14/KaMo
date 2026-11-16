@@ -1,9 +1,6 @@
 #include <mm/memblock.h>
-
 #include <asm/memblock.h>
-
 #include <mm/earlybump.h>
-
 #include <lib/tree/rb_tree.h>
 #include <lib/memory.h>
 
@@ -67,7 +64,7 @@ memblock_err_t memblock_alloc(size_t size, size_t aligned, range_t* out)
   if ((aligned & (aligned - 1)) != 0 || (aligned < MEMBLOCK_SIZE))
     return MEMBLOCK_ERR_INVALID;
 
-  if(disabled)
+  if (disabled)
     return MEMBLOCK_ERR_DISABLED;
 
   memblock_iter_t iter;
@@ -120,7 +117,7 @@ memblock_err_t memblock_alloc_range(size_t size, size_t aligned, range_t range, 
   if (range.end < range.start)
     return MEMBLOCK_ERR_INVALID;
   
-  if(disabled)
+  if (disabled)
     return MEMBLOCK_ERR_DISABLED;
     
   memblock_iter_t iter;
@@ -176,7 +173,7 @@ memblock_err_t memblock_alloc_free(range_t range)
   if (range.end < range.start)
     return MEMBLOCK_ERR_INVALID;
 
-  if(disabled)
+  if (disabled)
     return MEMBLOCK_ERR_DISABLED;
 
   rb_tree_node_t* memory_node = memblock_find_overlap(&rb_tree_memory, &range);
@@ -367,10 +364,10 @@ static memblock_err_t memblock_add_range(rb_tree_t* tree, range_t physical_range
     if (rb_tree_remove(tree, fnode))
       return MEMBLOCK_ERR_INVALID;
 
-    if (reused_mem_node->range.start < merged_range.start)
-      merged_range.start = reused_mem_node->range.start;
-    if (reused_mem_node->range.end > merged_range.end)
-      merged_range.end = reused_mem_node->range.end;
+    if (fmem_node->range.start < merged_range.start)
+      merged_range.start = fmem_node->range.start;
+    if (fmem_node->range.end > merged_range.end)
+      merged_range.end = fmem_node->range.end;
 
     search_range.start = (merged_range.start == 0) ? 0 : merged_range.start - 1;
     search_range.end = (merged_range.end == UINTPTR_MAX) ? UINTPTR_MAX : merged_range.end + 1;
@@ -382,17 +379,21 @@ static memblock_err_t memblock_add_range(rb_tree_t* tree, range_t physical_range
 
 static rb_tree_node_t* memblock_find_overlap(const rb_tree_t* tree, const range_t* range)
 {
-  rb_tree_node_t* node = tree->root;
+  if (!tree || !tree->root || !tree->NIL || !range || range->end < range->start || tree->root == tree->NIL)
+    return NULL;
 
-  while (node != tree->NIL)
+  rb_tree_node_t* node = rb_tree_minimum(tree, tree->root);
+  while (node != tree->NIL && node != NULL)
   {
     struct memblock_node_s* current = node->data;
-    if (current->range.end < range->start)
-      node = node->right;
-    else if (range->end < current->range.start)
-      node = node->left;
-    else
-      return node;
+    if (current)
+    {
+      if (current->range.start <= range->end && range->start <= current->range.end)
+      {
+        return node;
+      }
+    }
+    node = rb_tree_successor(tree, node);
   }
 
   return NULL;
@@ -467,7 +468,7 @@ static int memblock_rb_tree_cmp(const void* a, const void* b)
   if (node_a->range.start < node_b->range.start)
     return -1;
 
-  if (node_a->range.start >  node_b->range.start)
+  if (node_a->range.start > node_b->range.start)
     return 1;
 
   return 0;

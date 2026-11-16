@@ -12,7 +12,8 @@ SOURCES := 			\
 	page_alloc.c 	\
 	slab.c				\
 	mmu.c					\
-	vma.c
+	vma.c					\
+	vmalloc.c			\
 
 OBJECTS := $(SOURCES:%=$(OUT)/%.o)
 

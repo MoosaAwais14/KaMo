@@ -28,7 +28,7 @@ static mmu_err_t mmu_bootstrap_alloc_page(phys_addr_t* out);
 static void mmu_bootstrap_release_page(phys_addr_t paddr);
 
 static void setup_bootstrap_paging(void);
-static void setup_boot_reserves(void);
+static int setup_boot_reserves(void);
 static int setup_kernel_reserves(void);
 static virt_addr_t setup_bsp_stack(void);
 
@@ -67,7 +67,9 @@ void __noreturn setup_arch(void)
 
 void __noreturn continue_setup_arch(void)
 {
-  setup_boot_reserves();
+  if (setup_boot_reserves() != 0)
+    local_safe_halt();
+
   if (setup_kernel_reserves() != 0)
     local_safe_halt();
 
@@ -81,7 +83,7 @@ void __noreturn continue_setup_arch(void)
 
   if (arch_fixmap_init(&kernel_pgd_space.arch) != MMU_OK)
     local_safe_halt();
-  
+ 
   // Note: vma is dependent on slab/slub allocator.
   vma_init(kernel_mm.vma, (range_t){ .start = VMALLOC_START, .end = VMALLOC_LIMIT - 1 });
 
@@ -133,7 +135,7 @@ static void setup_bootstrap_paging(void)
   load_cr3(kernel_pgd_space.arch.cr3);
 }
 
-static void setup_boot_reserves(void)
+static int setup_boot_reserves(void)
 {
   for (size_t i = 0; i < kernel_boot_info.memory_map.count; i++) 
   {
@@ -141,13 +143,17 @@ static void setup_boot_reserves(void)
 
     if (e->type == BOOT_INFO_MEMORY_TYPE_USABLE)
     {
-      memblock_add(e->phys_range);
+      if(memblock_add(e->phys_range) != MEMBLOCK_OK)
+        return 1;
     }
     else
     {
-      memblock_reserve(e->phys_range);
+      if(memblock_reserve(e->phys_range) != MEMBLOCK_OK)
+        return 2;
     }
   }
+
+  return 0;
 }
 
 static int setup_kernel_reserves(void)
@@ -160,12 +166,12 @@ static int setup_kernel_reserves(void)
   };
 
   if (memblock_reserve((range_t){ .start = 0x0, .end = PAGE_SIZE - 1 }) != MEMBLOCK_OK)
-    return -1;
+    return 1;
 
   for (size_t i = 0; i < sizeof(kernel_vm_ranges) / sizeof(kernel_vm_ranges[0]); i++)
   {
     if(memblock_reserve((range_t){ .start = ___pa(kernel_vm_ranges[i].start), .end = ___pa(kernel_vm_ranges[i].end) }) != MEMBLOCK_OK)
-      return -1;
+      return 2;
   }
 
   return 0;

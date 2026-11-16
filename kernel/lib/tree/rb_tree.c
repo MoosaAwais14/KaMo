@@ -1,5 +1,4 @@
 #include <lib/tree/rb_tree.h>
-
 #include <stddef.h>
 
 static void rb_rotate_left(rb_tree_t* tree, rb_tree_node_t* node);
@@ -12,7 +11,7 @@ static int rb_tree_contains_node(const rb_tree_t* tree, const rb_tree_node_t* no
 
 int rb_tree_init(rb_tree_t* tree, rb_tree_cmp_t cmp)
 {
-  if(!tree || !cmp)
+  if (!tree || !cmp)
     return -1;
 
   tree->NIL = &tree->__NIL;
@@ -22,7 +21,6 @@ int rb_tree_init(rb_tree_t* tree, rb_tree_cmp_t cmp)
   tree->NIL->data = NULL;
 
   tree->root = tree->NIL;
-
   tree->cmp = cmp;
 
   return 0;
@@ -30,7 +28,7 @@ int rb_tree_init(rb_tree_t* tree, rb_tree_cmp_t cmp)
 
 int rb_tree_insert(rb_tree_t* tree, rb_tree_node_t* node)
 {
-  if(!tree || !node || !tree->cmp)
+  if (!tree || !node || !tree->cmp)
     return -1;
 
   rb_tree_node_t* parent = NULL;
@@ -39,22 +37,21 @@ int rb_tree_insert(rb_tree_t* tree, rb_tree_node_t* node)
   node->left = node->right = tree->NIL;
   node->color = RB_RED;
 
-  while(current != tree->NIL)
+  while (current != tree->NIL)
   {
     parent = current;
-    if (tree->cmp(node->data, current->data) < 0) 
+    if (tree->cmp(node->data, current->data) < 0)
     {
       current = current->left;
     }
-    else
-  {
+    else {
       current = current->right;
     }
   }
 
   node->parent = parent;
 
-  if (parent == NULL) 
+  if (parent == NULL)
   {
     tree->root = node;
   }
@@ -66,8 +63,8 @@ int rb_tree_insert(rb_tree_t* tree, rb_tree_node_t* node)
 {
     parent->right = node;
   }
-  rb_fix_insert(tree, node);
 
+  rb_fix_insert(tree, node);
   return 0;
 }
 
@@ -137,7 +134,6 @@ int rb_tree_remove(rb_tree_t* tree, rb_tree_node_t* node)
   node->right = NULL;
   node->parent = NULL;
   node->color = RB_BLACK;
-
   tree->NIL->parent = tree->NIL;
 
   return 0;
@@ -149,15 +145,11 @@ rb_tree_node_t* rb_tree_successor(const rb_tree_t* tree, rb_tree_node_t* node)
     return NULL;
 
   if (node->right != tree->NIL)
-  {
-    node = node->right;
-    while (node->left != tree->NIL)
-      node = node->left;
-    return node;
-  }
+    return rb_tree_minimum(tree, node->right);
 
   rb_tree_node_t* parent = node->parent;
-  while (parent && node == parent->right)
+
+  while (parent != NULL && parent != tree->NIL && node == parent->right)
   {
     node = parent;
     parent = parent->parent;
@@ -168,6 +160,9 @@ rb_tree_node_t* rb_tree_successor(const rb_tree_t* tree, rb_tree_node_t* node)
 
 rb_tree_node_t* rb_tree_minimum(const rb_tree_t* tree, rb_tree_node_t* node)
 {
+  if (!tree || !tree->NIL || !node)
+    return NULL;
+
   while (node->left != tree->NIL)
     node = node->left;
 
@@ -176,6 +171,9 @@ rb_tree_node_t* rb_tree_minimum(const rb_tree_t* tree, rb_tree_node_t* node)
 
 rb_tree_node_t* rb_tree_maximum(const rb_tree_t* tree, rb_tree_node_t* node)
 {
+  if (!tree || !tree->NIL || !node)
+    return NULL;
+
   while (node->right != tree->NIL)
     node = node->right;
 
@@ -228,28 +226,32 @@ static void rb_fix_remove(rb_tree_t* tree, rb_tree_node_t* node)
 
       if (sibling->left->color == RB_BLACK && sibling->right->color == RB_BLACK)
       {
-        sibling->color = RB_RED;
+        if (sibling != tree->NIL)
+          sibling->color = RB_RED;
         node = node->parent;
       }
       else
     {
         if (sibling->right->color == RB_BLACK)
         {
-          sibling->left->color = RB_BLACK;
-          sibling->color = RB_RED;
+          if (sibling->left != tree->NIL)
+            sibling->left->color = RB_BLACK;
+          if (sibling != tree->NIL)
+            sibling->color = RB_RED;
           rb_rotate_right(tree, sibling);
           sibling = node->parent->right;
         }
 
-        sibling->color = node->parent->color;
+        if (sibling != tree->NIL)
+          sibling->color = node->parent->color;
         node->parent->color = RB_BLACK;
-        sibling->right->color = RB_BLACK;
+        if (sibling->right != tree->NIL)
+          sibling->right->color = RB_BLACK;
         rb_rotate_left(tree, node->parent);
         node = tree->root;
       }
     }
-    else
-  {
+    else {
       rb_tree_node_t* sibling = node->parent->left;
 
       if (sibling->color == RB_RED)
@@ -262,22 +264,27 @@ static void rb_fix_remove(rb_tree_t* tree, rb_tree_node_t* node)
 
       if (sibling->right->color == RB_BLACK && sibling->left->color == RB_BLACK)
       {
-        sibling->color = RB_RED;
+        if (sibling != tree->NIL)
+          sibling->color = RB_RED;
         node = node->parent;
       }
       else
     {
         if (sibling->left->color == RB_BLACK)
         {
-          sibling->right->color = RB_BLACK;
-          sibling->color = RB_RED;
+          if (sibling->right != tree->NIL)
+            sibling->right->color = RB_BLACK;
+          if (sibling != tree->NIL)
+            sibling->color = RB_RED;
           rb_rotate_left(tree, sibling);
           sibling = node->parent->left;
         }
 
-        sibling->color = node->parent->color;
+        if (sibling != tree->NIL)
+          sibling->color = node->parent->color;
         node->parent->color = RB_BLACK;
-        sibling->left->color = RB_BLACK;
+        if (sibling->left != tree->NIL)
+          sibling->left->color = RB_BLACK;
         rb_rotate_right(tree, node->parent);
         node = tree->root;
       }
@@ -289,9 +296,9 @@ static void rb_fix_remove(rb_tree_t* tree, rb_tree_node_t* node)
 
 static void rb_fix_insert(rb_tree_t* tree, rb_tree_node_t* node)
 {
-  while (node != tree->root && node->parent->color == RB_RED) 
+  while (node != tree->root && node->parent->color == RB_RED)
   {
-    if (node->parent == node->parent->parent->left) 
+    if (node->parent == node->parent->parent->left)
     {
       rb_tree_node_t* uncle = node->parent->parent->right;
 
@@ -315,7 +322,7 @@ static void rb_fix_insert(rb_tree_t* tree, rb_tree_node_t* node)
       }
     }
     else 
-  {                                   
+  {
       rb_tree_node_t* uncle = node->parent->parent->left;
 
       if (uncle->color == RB_RED) 
@@ -346,7 +353,7 @@ static void rb_rotate_left(rb_tree_t* tree, rb_tree_node_t* node)
   rb_tree_node_t* y = node->right;
   node->right = y->left;
 
-  if (y->left != tree->NIL) 
+  if (y->left != tree->NIL)
   {
     y->left->parent = node;
   }
@@ -354,14 +361,14 @@ static void rb_rotate_left(rb_tree_t* tree, rb_tree_node_t* node)
   y->parent = node->parent;
 
   if (node->parent == NULL)
-  { 
+  {
     tree->root = y;
   }
-  else if (node == node->parent->left) 
+  else if (node == node->parent->left)
   {
     node->parent->left = y;
   }
-  else                          
+  else
 {
     node->parent->right = y;
   }
@@ -375,7 +382,7 @@ static void rb_rotate_right(rb_tree_t* tree, rb_tree_node_t* node)
   rb_tree_node_t* y = node->left;
   node->left = y->right;
 
-  if (y->right != tree->NIL) 
+  if (y->right != tree->NIL)
   {
     y->right->parent = node;
   }
@@ -386,11 +393,11 @@ static void rb_rotate_right(rb_tree_t* tree, rb_tree_node_t* node)
   {
     tree->root = y;
   }
-  else if (node == node->parent->right) 
+  else if (node == node->parent->right)
   {
     node->parent->right = y;
   }
-  else                           
+  else
 {
     node->parent->left = y;
   }

@@ -6,13 +6,10 @@
 
 static int vma_rb_tree_cmp(const void* a, const void* b);
 
-static rb_tree_node_t* vma_first(vma_space_t* vma_space, rb_tree_node_t** iter, range_t* out);
-static rb_tree_node_t* vma_next(vma_space_t* vma_space, rb_tree_node_t** iter, range_t* out);
-
 static rb_tree_node_t* vma_find_overlap(const rb_tree_t* tree, const range_t* range);
 static uint8_t vma_find_free_in_range(const rb_tree_t* tree, const range_t* memory_range, size_t size, size_t aligned, virt_addr_t* result);
 
-static rb_tree_node_t* vma_add(rb_tree_t* tree, range_t range, uint32_t flags);
+static rb_tree_node_t* vma_add(rb_tree_t* tree, range_t range);
 static int vma_remove(rb_tree_t* tree, rb_tree_node_t* rb_node);
 
 void vma_init(vma_space_t* vma_space, range_t virtual_limits)
@@ -25,7 +22,7 @@ void vma_init(vma_space_t* vma_space, range_t virtual_limits)
   vma_space->limits = virtual_limits;
 }
 
-vma_node_t* vma_alloc_region(vma_space_t* vma_space, size_t size, size_t aligned, range_t range, uint32_t flags)
+vma_node_t* vma_alloc_region(vma_space_t* vma_space, size_t size, size_t aligned, range_t range)
 {
   if(!vma_space || size == 0)
     return NULL;
@@ -39,54 +36,31 @@ vma_node_t* vma_alloc_region(vma_space_t* vma_space, size_t size, size_t aligned
   if (range.end < range.start)
     return NULL;
 
-  rb_tree_node_t* iter;
-  range_t memory_range;
+  range_t effective_range = {
+    .start = (range.start > vma_space->limits.start) ? range.start : vma_space->limits.start,
+    .end = (range.end < vma_space->limits.end) ? range.end : vma_space->limits.end
+  };
 
   unsigned long irq_flags = raw_spin_lock_irqsave(&vma_space->rlock);
 
-  if(!vma_first(vma_space, &iter, &memory_range))
+  if (effective_range.start <= effective_range.end)
   {
-    memory_range = vma_space->limits;
-    iter = NULL;
-  }
-
-  do
-  {
-    virt_addr_t sub_start = (memory_range.start > range.start) ? memory_range.start : range.start;
-    virt_addr_t sub_end = (memory_range.end < range.end) ? memory_range.end : range.end;
-
-    if (sub_start <= sub_end)
+    virt_addr_t start;
+    if (vma_find_free_in_range(&vma_space->busy_tree, &effective_range, size, aligned, &start))
     {
-      range_t effective_range = {
-        .start = sub_start,
-        .end = sub_end
-      };
-
-      virt_addr_t start;
-
-      if (vma_find_free_in_range(&vma_space->busy_tree, &effective_range, size, aligned, &start))
+      if ((virt_addr_t)(size - 1) <= UINTPTR_MAX - start)
       {
-        if ((virt_addr_t)(size - 1) > UINTPTR_MAX - start)
-        {
-          raw_spin_unlock_irqrestore(&vma_space->rlock, irq_flags);
-          return NULL;
-        }
-
         range_t allocation = {
           .start = start,
           .end = start + (virt_addr_t)(size - 1)
         };
 
-        rb_tree_node_t* rb_node = vma_add(&vma_space->busy_tree, allocation, flags);
+        rb_tree_node_t* rb_node = vma_add(&vma_space->busy_tree, allocation);
         raw_spin_unlock_irqrestore(&vma_space->rlock, irq_flags);
         return rb_node ? rb_node->data : NULL;
       }
     }
-
-    if (!iter)
-      break;
-
-  } while(vma_next(vma_space, &iter, &memory_range));
+  }
 
   raw_spin_unlock_irqrestore(&vma_space->rlock, irq_flags);
   return NULL;
@@ -97,10 +71,10 @@ int vma_free_region(vma_space_t* vma_space, vma_node_t* vma_node)
   if(!vma_space || !vma_node)
     return -1;
 
-  range_t requested = vma_node->range;
-
   unsigned long irq_flags = raw_spin_lock_irqsave(&vma_space->rlock);
-  int ret = vma_remove(&vma_space->busy_tree, vma_node->rb_owner);
+  int ret = vma_node->rb_owner && vma_node->rb_owner->data == vma_node
+    ? vma_remove(&vma_space->busy_tree, vma_node->rb_owner)
+    : -1;
   raw_spin_unlock_irqrestore(&vma_space->rlock, irq_flags);
   return ret;
 }
@@ -129,7 +103,7 @@ vma_node_t* vma_find(vma_space_t* vma_space, virt_addr_t address)
   return overlap ? ((vma_node_t*)overlap->data) : NULL;
 }
 
-static rb_tree_node_t* vma_add(rb_tree_t* tree, range_t range, uint32_t flags)
+static rb_tree_node_t* vma_add(rb_tree_t* tree, range_t range)
 {
   if(!tree)
     return NULL;
@@ -138,15 +112,17 @@ static rb_tree_node_t* vma_add(rb_tree_t* tree, range_t range, uint32_t flags)
   if(!rb_node)
     return NULL;
 
+  memset(rb_node, 0, sizeof(rb_tree_node_t));
+
   vma_node_t* vma_node = kmalloc(sizeof(vma_node_t));
   if(!vma_node)
   {
     kfree(rb_node);
     return NULL;
   }
+  memset(vma_node, 0, sizeof(vma_node_t));
 
   vma_node->range = range;
-  vma_node->flags = flags;
   vma_node->rb_owner = rb_node;
   rb_node->data = vma_node;
 
@@ -176,6 +152,9 @@ static int vma_remove(rb_tree_t* tree, rb_tree_node_t* rb_node)
 
 static rb_tree_node_t* vma_find_overlap(const rb_tree_t* tree, const range_t* range)
 {
+  if (!tree || !tree->root || !tree->NIL || !range)
+    return NULL;
+
   rb_tree_node_t* node = tree->root;
 
   while (node != tree->NIL)
@@ -251,50 +230,6 @@ static uint8_t vma_find_free_in_range(const rb_tree_t* tree, const range_t* memo
   }
 
   return 0;
-}
-
-static rb_tree_node_t* vma_first(vma_space_t* vma_space, rb_tree_node_t** iter, range_t* out)
-{
-  if(!vma_space || !vma_space->busy_tree.root || !iter)
-    return NULL;
-
-  rb_tree_node_t* rb_node = rb_tree_minimum(&vma_space->busy_tree, vma_space->busy_tree.root);
-
-  if(rb_node == vma_space->busy_tree.NIL)
-    return NULL;
-
-  vma_node_t* vma_node = rb_node->data;
-
-  if(!vma_node)
-    return NULL;
-
-  if(out)
-    *out = vma_node->range;
-
-  *iter = rb_node;
-  return rb_node;
-}
-
-static rb_tree_node_t* vma_next(vma_space_t* vma_space, rb_tree_node_t** iter, range_t* out)
-{
-  if(!vma_space || !vma_space->busy_tree.root || !iter)
-    return NULL;
-
-  rb_tree_node_t* rb_node = rb_tree_successor(&vma_space->busy_tree, *iter);
-
-  if(rb_node == vma_space->busy_tree.NIL)
-    return NULL;
-
-  vma_node_t* vma_node = rb_node->data;
-
-  if(!vma_node)
-    return NULL;
-
-  if(out)
-    *out = vma_node->range;
-
-  *iter = rb_node;
-  return rb_node;
 }
 
 static int vma_rb_tree_cmp(const void* a, const void* b)
