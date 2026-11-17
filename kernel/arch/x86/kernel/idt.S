@@ -39,19 +39,29 @@ ir_common_stub:
   pusha
   movw %ds, %ax
   pushl %eax
+  movw %es, %ax
+  pushl %eax
+  movw %fs, %ax
+  pushl %eax
+  movw %gs, %ax
+  pushl %eax
   movw $GDT_KERNEL_DATA32_SELECTOR, %ax
   movw %ax, %ds
   movw %ax, %es
   movw %ax, %fs
   movw %ax, %gs
+  cld
   pushl %esp
   call idt_dispatch
   addl $4, %esp
   popl %eax
-  movw %ax, %ds
-  movw %ax, %es
-  movw %ax, %fs
   movw %ax, %gs
+  popl %eax
+  movw %ax, %fs
+  popl %eax
+  movw %ax, %es
+  popl %eax
+  movw %ax, %ds
   popa
   addl $8, %esp
   iret
