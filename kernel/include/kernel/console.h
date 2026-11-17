@@ -5,7 +5,7 @@
 #include <stddef.h>
 
 typedef struct console_s {
-  const char* name;
+  const char *name;
 } console_t;
 
 #endif

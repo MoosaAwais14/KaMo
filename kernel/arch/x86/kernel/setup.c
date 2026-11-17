@@ -15,6 +15,7 @@
 
 #include <kernel/start_kernel.h>
 #include <kernel/cpu.h>
+#include <kernel/console.h>
 
 #include <mm/mm.h>
 #include <mm/earlybump.h>

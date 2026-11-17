@@ -9,7 +9,8 @@ SOURCES := \
 	main.c \
 	cpu.c \
 	interrupt.c \
-	irq.c
+	irq.c \
+	console.c
 
 OBJECTS := $(SOURCES:%=$(OUT)/%.o)
 

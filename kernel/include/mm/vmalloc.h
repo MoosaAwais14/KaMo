@@ -10,8 +10,10 @@
 
 extern void vmalloc_init(void);
 
-extern void* vmap(page_t** pages, size_t page_count, mmu_flags_t mmu_flags, vma_flags_t vma_flags);
+extern void* vmap(page_t** pages, size_t page_count, mmu_flags_t mmu_flags);
+extern int vunmap(void* addr);
+
 extern void* vmalloc(size_t size);
-extern void vfree(void* addr);
+extern int vfree(void* addr);
 
 #endif

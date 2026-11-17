@@ -17,9 +17,10 @@ typedef struct vma_space_s {
 
 typedef uint32_t vma_flags_t;
 
-#define VMA_FLAG_VMALLOC   (1u << 0)
-#define VMA_FLAG_VMAP      (1u << 1)
-#define VMA_FLAG_FREEING   (1u << 2)
+#define VMA_FLAG_VMALLOC  (1u << 0)
+#define VMA_FLAG_VMAP     (1u << 1)
+#define VMA_FLAG_FREEING  (1u << 2)
+#define VMA_FLAG_IOMAP    (1u << 3)
 
 typedef struct vma_node_s {
   range_t range;
@@ -34,7 +35,9 @@ typedef struct vma_node_s {
 extern void vma_init(vma_space_t* vma_space, range_t virtual_limits);
 
 extern vma_node_t* vma_alloc_region(vma_space_t* vma_space, size_t size, size_t aligned, range_t range);
-extern int vma_set_mapping(vma_space_t* vma_space, vma_node_t* vma_node, page_t** pages, size_t nr_pages, vma_flags_t flags, page_t* page_array_storage, uint8_t page_array_order);
+extern const vma_node_t* vma_find_region(vma_space_t* vma_space, virt_addr_t address);
+extern int vma_set_iomap(vma_space_t* vma_space, vma_node_t* vma_node);
+extern int vma_set_page_backing(vma_space_t* vma_space, vma_node_t* vma_node, page_t** pages, size_t nr_pages, vma_flags_t flags, page_t* page_array_storage, uint8_t page_array_order);
 extern vma_node_t* vma_claim_region(vma_space_t* vma_space, virt_addr_t address, vma_flags_t required_flags);
 extern int vma_free_claimed_region(vma_space_t* vma_space, vma_node_t* vma_node);
 extern int vma_free_region(vma_space_t* vma_space, vma_node_t* vma_node);

@@ -14,6 +14,7 @@ SOURCES := 			\
 	mmu.c					\
 	vma.c					\
 	vmalloc.c			\
+	ioremap.c
 
 OBJECTS := $(SOURCES:%=$(OUT)/%.o)
 

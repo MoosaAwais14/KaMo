@@ -8,20 +8,81 @@
 #include <mm/mmu.h>
 #include <lib/memory.h>
 
-static void* vmap_internal(page_t** pages, size_t page_count, mmu_flags_t mmu_flags, vma_flags_t vma_flags, page_t* page_array_storage, uint8_t page_array_order, uint8_t owns_pages);
+static void* vmap_internal(page_t** pages, size_t page_count, mmu_flags_t mmu_flags, page_t* page_array_storage, uint8_t page_array_order, uint8_t owns_pages);
 static void* vmalloc_order(size_t size, mmu_flags_t mmu_flags, uint8_t order);
-static void rollback_mapping(virt_addr_t start, size_t size, uint8_t allow_partial);
+static void rollback_mapping(virt_addr_t start, size_t size);
+static vma_node_t* vmap_claim_and_unmap(void* addr, vma_flags_t required_flags);
 
 void vmalloc_init(void) { }
 
-void* vmap(page_t** pages, size_t page_count, mmu_flags_t mmu_flags, vma_flags_t vma_flags)
+void* vmap(page_t** pages, size_t page_count, mmu_flags_t mmu_flags)
 {
-  return vmap_internal(pages, page_count, mmu_flags, vma_flags, NULL, 0, 0);
+  return vmap_internal(pages, page_count, mmu_flags, NULL, 0, 0);
 }
 
-static void* vmap_internal(page_t** pages, size_t page_count, mmu_flags_t mmu_flags, vma_flags_t vma_flags, page_t* page_array_storage, uint8_t page_array_order, uint8_t owns_pages)
+int vunmap(void* addr)
 {
-  if (!pages || page_count == 0 || (vma_flags & (VMA_FLAG_VMALLOC | VMA_FLAG_FREEING)))
+  vma_node_t* vma = vmap_claim_and_unmap(addr, VMA_FLAG_VMAP);
+  if (!vma)
+    return -1;
+
+  if (vma_free_claimed_region(kernel_mm.vma, vma) != 0)
+    return 1;
+
+  return 0;
+}
+
+void* vmalloc(size_t size)
+{
+  if (size == 0 || size > (VMALLOC_LIMIT - VMALLOC_START))
+    return NULL;
+
+  mmu_flags_t mmu_flags = MMU_FLAG_READ | MMU_FLAG_WRITE;
+  int order = get_order(size);
+  if (order > 0)
+  {
+    void* ptr = vmalloc_order(size, mmu_flags, (uint8_t)order);
+    if (ptr)
+      return ptr;
+  }
+
+  return vmalloc_order(size, mmu_flags, 0);
+}
+
+int vfree(void* addr)
+{
+  vma_node_t* vma = vmap_claim_and_unmap(addr, VMA_FLAG_VMAP | VMA_FLAG_VMALLOC);
+  if (!vma)
+    return -1;
+
+  size_t i = 0;
+  while (i < vma->nr_pages)
+  {
+    page_t* head = vma->pages[i];
+    if (!head || head->state != PAGE_STATE_ALLOCATED_HEAD || head->order > MAX_PAGE_ORDER)
+      return 1;
+
+    size_t block_pages = 1UL << head->order;
+    if (block_pages > vma->nr_pages - i)
+      return 2;
+
+    free_pages(head, head->order);
+    i += block_pages;
+  }
+
+  if (!vma->page_array_storage || vma->page_array_order > MAX_PAGE_ORDER)
+    return 3;
+  free_pages(vma->page_array_storage, vma->page_array_order);
+
+  if (vma_free_claimed_region(kernel_mm.vma, vma) != 0)
+    return 4;
+
+  return 0;
+}
+
+static void* vmap_internal(page_t** pages, size_t page_count, mmu_flags_t mmu_flags, page_t* page_array_storage, uint8_t page_array_order, uint8_t owns_pages)
+{
+  if (!pages || page_count == 0)
     return NULL;
 
   if (page_count > ((VMALLOC_LIMIT - VMALLOC_START) >> PAGE_SHIFT))
@@ -44,18 +105,16 @@ static void* vmap_internal(page_t** pages, size_t page_count, mmu_flags_t mmu_fl
     if (!head || head->state != PAGE_STATE_ALLOCATED_HEAD ||
         head->order > MAX_PAGE_ORDER || head->compound_head != head)
     {
-      rollback_mapping(vma->range.start, i << PAGE_SHIFT, 0);
-      if (vma_free_region(kernel_mm.vma, vma) != 0)
-        local_safe_halt();
+      rollback_mapping(vma->range.start, i << PAGE_SHIFT);
+      vma_free_region(kernel_mm.vma, vma);
       return NULL;
     }
 
     size_t block_pages = 1UL << head->order;
     if (block_pages > page_count - i)
     {
-      rollback_mapping(vma->range.start, i << PAGE_SHIFT, 0);
-      if (vma_free_region(kernel_mm.vma, vma) != 0)
-        local_safe_halt();
+      rollback_mapping(vma->range.start, i << PAGE_SHIFT);
+      vma_free_region(kernel_mm.vma, vma);
       return NULL;
     }
 
@@ -73,9 +132,8 @@ static void* vmap_internal(page_t** pages, size_t page_count, mmu_flags_t mmu_fl
 
     if (!valid_block)
     {
-      rollback_mapping(vma->range.start, i << PAGE_SHIFT, 0);
-      if (vma_free_region(kernel_mm.vma, vma) != 0)
-        local_safe_halt();
+      rollback_mapping(vma->range.start, i << PAGE_SHIFT);
+      vma_free_region(kernel_mm.vma, vma);
       return NULL;
     }
 
@@ -85,91 +143,26 @@ static void* vmap_internal(page_t** pages, size_t page_count, mmu_flags_t mmu_fl
 
     if (mmu_map(kernel_mm.mmu, vaddr, paddr, block_size, mmu_flags) != MMU_OK)
     {
-      rollback_mapping(vaddr, block_size, 1);
-      rollback_mapping(vma->range.start, i << PAGE_SHIFT, 0);
-      if (vma_free_region(kernel_mm.vma, vma) != 0)
-        local_safe_halt();
+      rollback_mapping(vaddr, block_size);
+      rollback_mapping(vma->range.start, i << PAGE_SHIFT);
+      vma_free_region(kernel_mm.vma, vma);
       return NULL;
     }
     i += block_pages;
   }
 
-  vma_flags_t stored_flags = vma_flags | VMA_FLAG_VMAP;
+  vma_flags_t stored_flags = VMA_FLAG_VMAP;
   if (owns_pages)
     stored_flags |= VMA_FLAG_VMALLOC;
 
-  if (vma_set_mapping(kernel_mm.vma, vma, pages, page_count, stored_flags, page_array_storage, page_array_order) != 0)
+  if (vma_set_page_backing(kernel_mm.vma, vma, pages, page_count, stored_flags, page_array_storage, page_array_order) != 0)
   {
-    rollback_mapping(vma->range.start, aligned_size, 0);
-    if (vma_free_region(kernel_mm.vma, vma) != 0)
-      local_safe_halt();
+    rollback_mapping(vma->range.start, aligned_size);
+    vma_free_region(kernel_mm.vma, vma);
     return NULL;
   }
 
   return (void*)vma->range.start;
-}
-
-void* vmalloc(size_t size)
-{
-  if (size == 0 || size > (VMALLOC_LIMIT - VMALLOC_START))
-    return NULL;
-
-  mmu_flags_t mmu_flags = MMU_FLAG_READ | MMU_FLAG_WRITE;
-  int order = get_order(size);
-  if (order > 0)
-  {
-    void* ptr = vmalloc_order(size, mmu_flags, (uint8_t)order);
-    if (ptr)
-      return ptr;
-  }
-
-  return vmalloc_order(size, mmu_flags, 0);
-}
-
-void vfree(void* addr)
-{
-  if (!addr)
-    return;
-
-  virt_addr_t vaddr = (virt_addr_t)addr;
-  if (vaddr < VMALLOC_START || vaddr >= VMALLOC_LIMIT)
-    return;
-
-  vma_node_t* vma = vma_claim_region(kernel_mm.vma, vaddr, VMA_FLAG_VMAP);
-  if (!vma)
-    return;
-
-  size_t total_size = vma->nr_pages << PAGE_SHIFT;
-  if (vma->nr_pages == 0 || (total_size >> PAGE_SHIFT) != vma->nr_pages)
-    local_safe_halt();
-
-  if (mmu_unmap(kernel_mm.mmu, vma->range.start, total_size) != MMU_OK)
-    local_safe_halt();
-
-  if (vma->flags & VMA_FLAG_VMALLOC)
-  {
-    size_t i = 0;
-    while (i < vma->nr_pages)
-    {
-      page_t* head = vma->pages[i];
-      if (!head || head->state != PAGE_STATE_ALLOCATED_HEAD || head->order > MAX_PAGE_ORDER)
-        local_safe_halt();
-
-      size_t block_pages = 1UL << head->order;
-      if (block_pages > vma->nr_pages - i)
-        local_safe_halt();
-
-      free_pages(head, head->order);
-      i += block_pages;
-    }
-
-    if (!vma->page_array_storage || vma->page_array_order > MAX_PAGE_ORDER)
-      local_safe_halt();
-    free_pages(vma->page_array_storage, vma->page_array_order);
-  }
-
-  if (vma_free_claimed_region(kernel_mm.vma, vma) != 0)
-    local_safe_halt();
 }
 
 static void* vmalloc_order(size_t size, mmu_flags_t mmu_flags, uint8_t order)
@@ -222,7 +215,7 @@ static void* vmalloc_order(size_t size, mmu_flags_t mmu_flags, uint8_t order)
     return NULL;
   }
 
-  void* addr = vmap_internal(page_array, total_pages, mmu_flags, 0, page_array_storage, (uint8_t)page_array_order, 1);
+  void* addr = vmap_internal(page_array, total_pages, mmu_flags, page_array_storage, (uint8_t)page_array_order, 1);
   if (!addr)
   {
     for (size_t i = 0; i < block_count; i++)
@@ -235,12 +228,32 @@ static void* vmalloc_order(size_t size, mmu_flags_t mmu_flags, uint8_t order)
   return addr;
 }
 
-static void rollback_mapping(virt_addr_t start, size_t size, uint8_t allow_partial)
+static void rollback_mapping(virt_addr_t start, size_t size)
 {
   if (!size)
     return;
+  mmu_unmap(kernel_mm.mmu, start, size);
+}
 
-  mmu_err_t err = mmu_unmap(kernel_mm.mmu, start, size);
-  if (err != MMU_OK && !(allow_partial && err == MMU_ERR_NOT_MAPPED))
-    local_safe_halt();
+static vma_node_t* vmap_claim_and_unmap(void* addr, vma_flags_t required_flags)
+{
+  if (!addr)
+    return NULL;
+
+  virt_addr_t vaddr = (virt_addr_t)addr;
+  if (vaddr < VMALLOC_START || vaddr >= VMALLOC_LIMIT)
+    return NULL;
+
+  vma_node_t* vma = vma_claim_region(kernel_mm.vma, vaddr, required_flags);
+  if (!vma)
+    return NULL;
+
+  if (!vma->nr_pages || vma->nr_pages > (SIZE_MAX >> PAGE_SHIFT))
+    return NULL;
+
+  size_t total_size = vma->nr_pages << PAGE_SHIFT;
+  if (mmu_unmap(kernel_mm.mmu, vma->range.start, total_size) != MMU_OK)
+    return NULL;
+
+  return vma;
 }
