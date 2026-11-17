@@ -18,7 +18,7 @@ typedef struct exception_desc_s {
   raw_spinlock_t rlock;
 } exception_desc_t;
 
-#define ARCH_EXCEPTION_COUNT 64
+#define ARCH_EXCEPTION_COUNT 32
 
 extern void arch_exception_early_init(void);
 

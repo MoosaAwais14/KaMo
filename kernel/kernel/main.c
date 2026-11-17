@@ -1,3 +1,6 @@
+#include "kernel/address.h"
+#include "mm/page_alloc.h"
+#include "mm/vma.h"
 #include <kernel/start_kernel.h>
 #include <kernel/interrupt.h>
 #include <kernel/cpu.h>
@@ -34,14 +37,6 @@ void __noreturn start_kernel(void)
   local_safe_halt();
 }
 
-void vga_print(volatile unsigned short *buffer, const char *str)
-{
-    while (*str)
-    {
-        *buffer++ = (0x07 << 8) | *str++;
-    }
-}
-
 void __noreturn continue_start_kernel(void)
 {
   mm_init();
@@ -56,7 +51,10 @@ void __noreturn continue_start_kernel(void)
   }
 
   // arch_exception_init(); // Update "early" exception vectors with proper handling
-  irq_init();
+  if(irq_init())
+  {
+    local_safe_halt()''
+  }
 
   local_safe_halt();
 }

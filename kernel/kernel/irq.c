@@ -1,4 +1,5 @@
 #include <kernel/irq.h>
+#include <kernel/interrupt.h>
 
 #include <asm/irq.h>
 
@@ -26,7 +27,7 @@ int irq_init(void)
 
 int irq_set_vector(uint32_t irq, uint32_t vector)
 {
-  if(irq >= IRQ_MAX)
+  if(irq >= IRQ_MAX || vector >= INTERRUPT_VECTOR_COUNT)
     return -1;
 
   irq_desc_t* desc = &irq_descs[irq];
@@ -146,8 +147,12 @@ int irq_enable(uint32_t irq)
     return 1;
   }
 
-  if (desc->chip->unmask)
-    desc->chip->unmask(irq);
+  int ret = desc->chip->unmask ? desc->chip->unmask(irq) : 0;
+  if (ret != 0)
+  {
+    raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
+    return ret;
+  }
 
   desc->enabled = 1;
 
@@ -170,8 +175,12 @@ int irq_disable(uint32_t irq)
     return 1;
   }
 
-  if (desc->chip->mask)
-    desc->chip->mask(irq);
+  int ret = desc->chip->mask ? desc->chip->mask(irq) : 0;
+  if (ret != 0)
+  {
+    raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
+    return ret;
+  }
 
   desc->enabled = 0;
 

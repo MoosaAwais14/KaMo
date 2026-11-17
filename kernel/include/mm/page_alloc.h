@@ -21,6 +21,12 @@ typedef enum {
 } page_alloc_err_t;
 
 typedef enum {
+  PAGE_REF_OK = 0,
+  PAGE_REF_ERR_INVALID,
+  PAGE_REF_ERR_OVERFLOW
+} page_ref_err_t;
+
+typedef enum {
   PAGE_STATE_INVALID = 0,
   PAGE_STATE_RESERVED,
   PAGE_STATE_ALLOCATED_HEAD,
@@ -37,13 +43,10 @@ typedef struct page_s {
   uint32_t flags;
   uint8_t order;
   uint8_t state;
-  uint8_t slab_index;
 } page_t;
 
-#define PAGE_SLAB_INDEX_NONE     UINT8_MAX
 #define PAGE_FLAG_GENERIC         (1u << 0)
 #define PAGE_FLAG_MMU_ALLOCATION  (1u << 1)
-#define PAGE_FLAG_SLAB_ALLOCATION (1u << 2)
 #define PAGE_FLAG_IO              (1u << 3)
 
 typedef unsigned long pfn_t;
@@ -51,6 +54,8 @@ typedef unsigned long pfn_t;
 extern page_alloc_err_t page_alloc_init(void);
 
 extern page_t* alloc_pages(zone_type_t zone_type, uint8_t order);
+extern page_ref_err_t page_get(page_t* page);
+extern page_ref_err_t page_put(page_t* page);
 extern void free_pages(page_t* page, uint8_t order);
 
 extern page_t* pfn_to_page(pfn_t pfn);

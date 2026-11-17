@@ -7,8 +7,6 @@
 
 static void arch_early_exception(idt_frame_t* frame);
 
-static void install_exception_vectors(void);
-
 static exception_desc_t exception_descs[ARCH_EXCEPTION_COUNT];
 
 void arch_exception_early_init(void)
@@ -22,11 +20,17 @@ void arch_exception_early_init(void)
     desc->handler = arch_early_exception;
     desc->flags = 0;
     desc->rlock = RAW_SPINLOCK_UNLOCKED;
+
+    if (interrupt_set_type(vector, INTERRUPT_EXCEPTION) != 0)
+      local_safe_halt();
   }
 }
 
 void arch_exception_dispatch(interrupt_context_t* context)
 {
+  if (!context)
+    return;
+
   uint32_t vector = context->vector;
 
   if(vector >= ARCH_EXCEPTION_COUNT)
@@ -40,20 +44,6 @@ void arch_exception_dispatch(interrupt_context_t* context)
 
   if(fn)
     fn(context->arch);
-}
-
-static void install_exception_vectors(void)
-{
-  for(size_t vector = 0; vector < ARCH_EXCEPTION_COUNT; vector++)
-  {
-    exception_desc_t* desc = &exception_descs[vector];
-
-    unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
-    exception_handler_t fn = desc->handler;
-    raw_spin_unlock_irqrestore(&desc->rlock, irq_flags);
-
-    interrupt_set_type(vector, INTERRUPT_EXCEPTION);
-  }
 }
 
 static void arch_early_exception(idt_frame_t* frame)

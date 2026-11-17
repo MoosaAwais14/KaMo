@@ -2,6 +2,8 @@
 
 #include <kernel/irq.h>
 
+#include <asm/exception.h>
+
 #include <lib/memory.h>
 
 static interrupt_desc_t interrupt_descs[INTERRUPT_VECTOR_COUNT] = { 0 };
@@ -38,7 +40,7 @@ int interrupt_set_type(uint32_t vector, interrupt_type_t type)
 
 int interrupt_set_irq(uint32_t vector, uint32_t irq)
 {
-  if(vector >= INTERRUPT_VECTOR_COUNT)
+  if(vector >= INTERRUPT_VECTOR_COUNT || irq >= IRQ_MAX)
     return -1;
 
   interrupt_desc_t* desc = &interrupt_descs[vector]; 
@@ -53,6 +55,9 @@ int interrupt_set_irq(uint32_t vector, uint32_t irq)
 
 void interrupt_dispatch(interrupt_context_t* context)
 {
+  if (!context || context->vector >= INTERRUPT_VECTOR_COUNT)
+    return;
+
   interrupt_desc_t* desc = &interrupt_descs[context->vector]; 
 
   unsigned long irq_flags = raw_spin_lock_irqsave(&desc->rlock);
@@ -66,7 +71,7 @@ void interrupt_dispatch(interrupt_context_t* context)
       break;
 
     case INTERRUPT_EXCEPTION:
-      
+      arch_exception_dispatch(context);
       break;
 
     default:

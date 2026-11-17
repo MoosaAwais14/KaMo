@@ -77,7 +77,7 @@ static inline uint8_t idt_default_flags(size_t vector)
     return IDT_USER_TRAP_GATE;
 
   if (vector < IDT_IRQ_VECTOR_BASE)
-    return IDT_DEFAULT_TRAP_GATE;
+    return IDT_DEFAULT_INTERRUPT_GATE;
 
   return IDT_DEFAULT_INTERRUPT_GATE;
 }

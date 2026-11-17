@@ -11,15 +11,21 @@
 
 int arch_irq_init(void)
 {
-  legacy_pic.init(NULL);
+  int ret = legacy_pic.init(NULL);
+  if (ret != 0)
+    return ret;
 
   for(size_t i = 0; i < 16; i++)
   {
-    irq_disable(i);
-    irq_set_chip(i, &legacy_pic);
-    irq_register(i, irqchip_handle);
-    irq_set_flags(i, IRQ_TRIGGER_DEFAULT | IRQ_POLARITY_DEFAULT);
-    interrupt_set_irq(IDT_IRQ_VECTOR_BASE + i, i);
+    uint32_t vector = IDT_IRQ_VECTOR_BASE + i;
+
+    if (irq_set_chip(i, &legacy_pic) != 0 ||
+        irq_set_vector(i, vector) != 0 ||
+        irq_register(i, irqchip_handle) != 0 ||
+        irq_set_flags(i, IRQ_TRIGGER_DEFAULT | IRQ_POLARITY_DEFAULT) != 0 ||
+        interrupt_set_irq(vector, i) != 0 ||
+        irq_disable(i) != 0)
+      return -1;
   }
 
   return 0;

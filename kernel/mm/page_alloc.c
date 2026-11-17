@@ -33,6 +33,8 @@ struct page_alloc_s {
 static inline void list_add(page_t** head, page_t* page);
 static inline void list_remove(page_t** head, page_t* page);
 static void set_page_block(page_t* head, uint8_t order, page_state_t head_state, page_state_t tail_state);
+static int page_pointer_to_pfn(page_t* page, pfn_t* pfn);
+static page_ref_err_t page_put_internal(page_t* page, int check_order, uint8_t order);
 
 static struct buddy_zone_s* get_zone(pfn_t pfn);
 
@@ -169,43 +171,106 @@ page_t* alloc_pages(zone_type_t zone_type, uint8_t order)
   page->order = order;
   page->refcount = 1;
   page->flags = PAGE_FLAG_GENERIC;
-  page->slab_index = PAGE_SLAB_INDEX_NONE;
 
   raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
   return page;
 }
 
-void free_pages(page_t* page, uint8_t order) 
+page_ref_err_t page_get(page_t* page)
 {
-  if (!page || order > MAX_PAGE_ORDER)
-    return;
+  pfn_t pfn;
+  if (!page_pointer_to_pfn(page, &pfn))
+    return PAGE_REF_ERR_INVALID;
 
-  pfn_t pfn = page_to_pfn(page);
-  struct buddy_zone_s *zone = get_zone(pfn);
-
-  if(!zone)
-    return;
+  page_t* member = pfn_to_page(pfn);
+  struct buddy_zone_s* zone = get_zone(pfn);
+  if (!member || !zone)
+    return PAGE_REF_ERR_INVALID;
 
   unsigned long irq_flags = raw_spin_lock_irqsave(&zone->rlock);
-
-  if (page->state != PAGE_STATE_ALLOCATED_HEAD || page->order != order || page->refcount == 0)
+  page_t* head = member->compound_head;
+  pfn_t head_pfn;
+  if (!page_pointer_to_pfn(head, &head_pfn) ||
+      get_zone(head_pfn) != zone ||
+      head->state != PAGE_STATE_ALLOCATED_HEAD ||
+      head->compound_head != head ||
+      head->order > MAX_PAGE_ORDER ||
+      member->state != (member == head ? PAGE_STATE_ALLOCATED_HEAD : PAGE_STATE_ALLOCATED_TAIL) ||
+      pfn < head_pfn || pfn - head_pfn >= (1UL << head->order) ||
+      head->refcount == 0)
   {
     raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
-    return;
+    return PAGE_REF_ERR_INVALID;
   }
 
-  page->refcount--;
-  if (page->refcount != 0)
+  if (head->refcount == SIZE_MAX)
   {
     raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
-    return;
+    return PAGE_REF_ERR_OVERFLOW;
   }
 
+  head->refcount++;
+  raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
+  return PAGE_REF_OK;
+}
+
+page_ref_err_t page_put(page_t* page)
+{
+  return page_put_internal(page, 0, 0);
+}
+
+void free_pages(page_t* page, uint8_t order)
+{
+  if (order > MAX_PAGE_ORDER)
+    return;
+
+  (void)page_put_internal(page, 1, order);
+}
+
+static page_ref_err_t page_put_internal(page_t* page, int check_order, uint8_t expected_order)
+{
+  pfn_t pfn;
+  if (!page_pointer_to_pfn(page, &pfn))
+    return PAGE_REF_ERR_INVALID;
+
+  page_t* member = pfn_to_page(pfn);
+  struct buddy_zone_s* zone = get_zone(pfn);
+  if (!member || !zone)
+    return PAGE_REF_ERR_INVALID;
+
+  unsigned long irq_flags = raw_spin_lock_irqsave(&zone->rlock);
+  page_t* head = member->compound_head;
+  pfn_t head_pfn;
+
+  if (!page_pointer_to_pfn(head, &head_pfn) ||
+      get_zone(head_pfn) != zone ||
+      head->state != PAGE_STATE_ALLOCATED_HEAD ||
+      head->compound_head != head ||
+      head->order > MAX_PAGE_ORDER ||
+      member->state != (member == head ? PAGE_STATE_ALLOCATED_HEAD : PAGE_STATE_ALLOCATED_TAIL) ||
+      pfn < head_pfn || pfn - head_pfn >= (1UL << head->order) ||
+      head->refcount == 0 ||
+      (check_order && (member != head || head->order != expected_order)))
+  {
+    raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
+    return PAGE_REF_ERR_INVALID;
+  }
+
+  head->refcount--;
+  if (head->refcount != 0)
+  {
+    raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
+    return PAGE_REF_OK;
+  }
+
+  uint8_t order = head->order;
   const size_t released_pages = 1UL << order;
+  page_t* free_head = head;
+  pfn_t free_pfn = head_pfn;
 
   while (order < MAX_PAGE_ORDER) 
   {
-    pfn_t buddy_pfn = pfn ^ (1UL << order);
+    pfn_t buddy_pfn = free_pfn ^ (1UL << order);
 
     if (buddy_pfn < page_alloc.base_pfn ||  buddy_pfn >= page_alloc.base_pfn + page_alloc.total_pages) 
     {
@@ -214,8 +279,7 @@ void free_pages(page_t* page, uint8_t order)
 
     page_t *buddy = pfn_to_page(buddy_pfn);
 
-    if (!buddy || get_zone(buddy_pfn) != zone ||
-        buddy->state != PAGE_STATE_FREE_HEAD || buddy->order != order)
+    if (!buddy || get_zone(buddy_pfn) != zone || buddy->state != PAGE_STATE_FREE_HEAD || buddy->order != order)
     {
       break;
     }
@@ -223,23 +287,24 @@ void free_pages(page_t* page, uint8_t order)
     list_remove(&zone->orders[order].area.free_list, buddy);
     zone->orders[order].area.nr_free--;
 
-    if (buddy_pfn < pfn) 
+    if (buddy_pfn < free_pfn)
     {
-      pfn = buddy_pfn;
-      page = buddy;
+      free_pfn = buddy_pfn;
+      free_head = buddy;
     }
 
     order++;
   }
 
-  set_page_block(page, order, PAGE_STATE_FREE_HEAD, PAGE_STATE_FREE_TAIL);
-  page->order = order;
+  set_page_block(free_head, order, PAGE_STATE_FREE_HEAD, PAGE_STATE_FREE_TAIL);
+  free_head->order = order;
 
-  list_add(&zone->orders[order].area.free_list, page);
+  list_add(&zone->orders[order].area.free_list, free_head);
   zone->orders[order].area.nr_free++;
   zone->free_pages += released_pages;
 
   raw_spin_unlock_irqrestore(&zone->rlock, irq_flags);
+  return PAGE_REF_OK;
 }
 
 page_t* pfn_to_page(pfn_t pfn) 
@@ -268,6 +333,24 @@ static struct buddy_zone_s* get_zone(pfn_t pfn)
   return &page_alloc.zones[ZONE_HIGHMEM];
 }
 
+static int page_pointer_to_pfn(page_t* page, pfn_t* pfn)
+{
+  if (!page || !pfn || !page_alloc.page_array)
+    return 0;
+
+  uintptr_t base = (uintptr_t)page_alloc.page_array;
+  uintptr_t address = (uintptr_t)page;
+  if (address < base)
+    return 0;
+
+  uintptr_t offset = address - base;
+  if (offset % sizeof(page_t) != 0 || offset / sizeof(page_t) >= page_alloc.total_pages)
+    return 0;
+
+  *pfn = page_alloc.base_pfn + offset / sizeof(page_t);
+  return 1;
+}
+
 static void set_page_block(page_t* head, uint8_t order, page_state_t head_state, page_state_t tail_state)
 {
   const size_t page_count = 1UL << order;
@@ -285,7 +368,6 @@ static void set_page_block(page_t* head, uint8_t order, page_state_t head_state,
     page->order = 0;
     page->state = i == 0 ? head_state : tail_state;
     page->flags = 0;
-    page->slab_index = PAGE_SLAB_INDEX_NONE;
   }
 
   head->order = order;
